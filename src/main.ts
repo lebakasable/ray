@@ -17,40 +17,35 @@ class Color {
   ) {}
 
   static red(): Color {
-    return new Color(1, 0, 0, 1);
-    //return new Color(0.95, 0.55, 0.66, 1);
+    return new Color(0.95, 0.55, 0.66, 1);
   }
 
   static green(): Color {
-    return new Color(0, 1, 0, 1);
-    //return new Color(0.65, 0.89, 0.63, 1);
+    return new Color(0.65, 0.89, 0.63, 1);
   }
 
   static blue(): Color {
-    return new Color(0, 0, 1, 1);
-    //return new Color(0.54, 0.71, 0.98, 1);
+    return new Color(0.54, 0.71, 0.98, 1);
   }
 
   static yellow(): Color {
-    return new Color(1, 1, 0, 1);
-    //return new Color(0.98, 0.89, 0.69, 1);
+    return new Color(0.98, 0.89, 0.69, 1);
   }
 
   static cyan(): Color {
-    return new Color(0, 1, 1, 1);
-    //return new Color(0.58, 0.89, 0.84, 1);
-  }
-
-  static purple(): Color {
-    return new Color(1, 0, 1, 1);
+    return new Color(0.58, 0.89, 0.84, 1);
   }
 
   static mauve(): Color {
     return new Color(0.80, 0.65, 0.97, 1);
   }
 
+  static black(): Color {
+    return new Color(0.09, 0.09, 0.13, 1);
+  }
+
   static darkGrey(): Color {
-    return new Color(0.12, 0.12, 0.18, 1);
+    return new Color(0.20, 0.20, 0.27, 1);
   }
 
   static lightGrey(): Color {
@@ -281,7 +276,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   ctx.scale(...size.div(scene.size).toArray());
   ctx.lineWidth = 0.1;
 
-  ctx.fillStyle = Color.darkGrey().toString();
+  ctx.fillStyle = Color.black().toString();
   ctx.fillRect(0, 0, ...scene.size.toArray());
 
   for (let y = 0; y < scene.size.y; ++y) {
@@ -347,6 +342,8 @@ const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene)
   const minimapSize = scene.size.scale(cellSize);
   ctx.fillStyle = Color.darkGrey().toString();
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.fillStyle = Color.black().toString();
+  ctx.fillRect(0, ctx.canvas.height*0.5, ctx.canvas.width, ctx.canvas.height*0.5);
   renderScene(ctx, player, scene);
   renderMinimap(ctx, player, minimapPosition, minimapSize, scene);
 };
@@ -373,8 +370,6 @@ const playerCanGoThere = (scene: Scene, p: Vector2): boolean => {
 };
 
 (async () => {
-  new Image();
-
   const game = document.querySelector<HTMLCanvasElement>('#game')!;
   const factor = 60;
   game.width = 16*factor;
