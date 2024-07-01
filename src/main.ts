@@ -4,7 +4,9 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
-const SCREEN_WIDTH = 200;
+const SCREEN_FACTOR = 15;
+const SCREEN_WIDTH = 16*SCREEN_FACTOR;
+const SCREEN_HEIGHT = 9*SCREEN_FACTOR;
 const PLAYER_SPEED = 2;
 const PLAYER_SIZE = 0.5;
 
@@ -312,28 +314,38 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
 };
 
 const renderScene = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
-  const stripWidth = Math.ceil(ctx.canvas.width/SCREEN_WIDTH);
+  ctx.save();
+  ctx.scale(ctx.canvas.width/SCREEN_WIDTH, ctx.canvas.height/SCREEN_HEIGHT);
   const [p1, p2] = player.fovRange();
   for (let x = 0; x < SCREEN_WIDTH; ++x) {
     const p = castRay(scene, player.position, p1.lerp(p2, x/SCREEN_WIDTH));
     const c = hittingCell(player.position, p);
     const v = p.sub(player.position);
     const d = Vector2.angle(player.direction);
-    const stripHeight = ctx.canvas.height/v.dot(d);
+    const stripHeight = SCREEN_HEIGHT/v.dot(d);
     const cell = scene.get(c);
     if (cell instanceof Color) {
       ctx.fillStyle = cell.brightness(1/v.dot(d)).toString();
-      ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
+      ctx.fillRect(
+        x, Math.floor((SCREEN_HEIGHT - stripHeight)*0.5),
+        1, Math.ceil(stripHeight));
     } else if (cell instanceof HTMLImageElement) {
       const t = p.sub(c);
       let u = (Math.abs(t.x) < EPS || Math.abs(t.x - 1) < EPS) && t.y > 0
         ? t.y
         : t.x;
-      ctx.drawImage(cell, u*cell.width, 0, 1, cell.height, x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
+      ctx.drawImage(
+        cell, 
+        Math.floor(u*cell.width), 0, 1, cell.height,
+        x, Math.floor((SCREEN_HEIGHT - stripHeight)*0.5),
+        1, Math.ceil(stripHeight));
       ctx.fillStyle = new Color(0, 0, 0, 1 - 1/v.dot(d)).toString();
-      ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight*1.01)*0.5, stripWidth, stripHeight*1.01);
+      ctx.fillRect(
+        x, Math.floor((SCREEN_HEIGHT - stripHeight)*0.5),
+        1, Math.ceil(stripHeight));
     }
   }
+  ctx.restore();
 };
 
 const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
@@ -378,12 +390,11 @@ const playerCanGoThere = (scene: Scene, p: Vector2): boolean => {
 
   const stone = await loadImageData('/stone.jpg');
   const wood = await loadImageData('/wood.jpg');
-  wood;
 
   const scene = new Scene([
     [null, null,  stone, stone, null, null, null, null, null],
     [null, null,  null,  stone, null, null, null, null, null],
-    [null, stone, stone, stone, null, null, null, null, null],
+    [null, wood,  stone, stone, null, null, null, null, null],
     [null, null,  null,  null,  null, null, null, null, null],
     [null, null,  null,  null,  null, null, null, null, null],
     [null, null,  null,  null,  null, null, null, null, null],
