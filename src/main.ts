@@ -4,7 +4,7 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.25;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
-const SCREEN_WIDTH = 300;
+const SCREEN_WIDTH = 600;
 const PLAYER_SPEED = 2;
 
 class Color {
@@ -199,7 +199,7 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
   return p3;
 };
 
-type Scene = Array<Array<Color | null>>;
+type Scene = Array<Array<Color | HTMLImageElement | null>>;
 
 const insideScene = (scene: Scene, p: Vector2): boolean => {
   const size = sceneSize(scene);
@@ -256,9 +256,12 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
 
   for (let y = 0; y < gridSize.y; ++y) {
     for (let x = 0; x < gridSize.x; ++x) {
-      if (scene[y][x]) {
-        ctx.fillStyle = scene[y][x]!.toString();
+      const cell = scene[y][x];
+      if (cell instanceof Color) {
+        ctx.fillStyle = cell.toString();
         ctx.fillRect(x, y, 1, 1);
+      } else if (cell instanceof HTMLImageElement) {
+        ctx.drawImage(cell, x, y, 1, 1);
       }
     }
   }
@@ -293,8 +296,15 @@ const renderScene = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
       const v = p.sub(player.position);
       const d = Vector2.fromAngle(player.direction);
       const stripHeight = ctx.canvas.height/v.dot(d);
-      ctx.fillStyle = scene[c.y][c.x]!.brightness(1/v.dot(d)).toString();
-      ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
+      const cell = scene[c.y][c.x];
+      if (cell instanceof Color) {
+        ctx.fillStyle = cell.brightness(1/v.dot(d)).toString();
+        ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
+      } else if (cell instanceof HTMLImageElement) {
+        const t = p.sub(c);
+        const u = Math.abs(t.x - 1) < EPS ? t.y : t.x;
+        ctx.drawImage(cell, u*cell.width, 0, 1, cell.height, x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
+      }
     }
   }
 };
@@ -309,22 +319,36 @@ const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene)
   renderMinimap(ctx, player, minimapPosition, minimapSize, scene);
 };
 
-(() => {
+const loadImageData = (url: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.src = url;
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+  });
+};
+
+(async () => {
+  new Image();
+
   const game = document.querySelector<HTMLCanvasElement>('#game')!;
   const factor = 60;
   game.width = 16*factor;
   game.height = 9*factor;
   const ctx = game.getContext('2d')!;
 
-  const scene = [
+  const cat = await loadImageData('/cat.jpg');
+
+  const scene: Scene = [
     [null, null,        Color.cyan(),  Color.purple(), null, null, null, null, null],
     [null, null,        null,          Color.yellow(), null, null, null, null, null],
-    [null, Color.red(), Color.green(), Color.blue(),   null, null, null, null, null],
+    [null, Color.red(), Color.green(), cat,   null, null, null, null, null],
     [null, null,        null,          null,           null, null, null, null, null],
     [null, null,        null,          null,           null, null, null, null, null],
     [null, null,        null,          null,           null, null, null, null, null],
     [null, null,        null,          null,           null, null, null, null, null],
   ];
+
   const player = new Player(
     sceneSize(scene).mul(new Vector2(0.63, 0.63)),
     Math.PI*1.25);
