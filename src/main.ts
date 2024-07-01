@@ -4,7 +4,7 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
-const SCREEN_FACTOR = 15;
+const SCREEN_FACTOR = 20;
 const SCREEN_WIDTH = 16*SCREEN_FACTOR;
 const SCREEN_HEIGHT = 9*SCREEN_FACTOR;
 const PLAYER_SPEED = 2;
@@ -445,11 +445,15 @@ const playerCanGoThere = (scene: Scene, p: Vector2): boolean => {
     if (turningRight) {
       angularVelocity += Math.PI*0.5;
     }
-    const newPosition = player.position.add(velocity.scale(deltaTime));
-    if (playerCanGoThere(scene, newPosition)) {
-      player.position = newPosition;
-    }
     player.direction = player.direction + angularVelocity*deltaTime;
+    const nx = player.position.x + velocity.x*deltaTime;
+    if (playerCanGoThere(scene, new Vector2(nx, player.position.y))) {
+      player.position.x = nx;
+    }
+    const ny = player.position.y + velocity.y*deltaTime;
+    if (playerCanGoThere(scene, new Vector2(player.position.x, ny))) {
+      player.position.y = ny;
+    }
     renderGame(ctx, player, scene);
     window.requestAnimationFrame(frame);
   };
