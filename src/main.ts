@@ -2,7 +2,7 @@ import './style.css';
 
 const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 1.0;
-//const FAR_CLIPPING_PLANE = 10.0;
+const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
 const SCREEN_WIDTH = 300;
 const PLAYER_STEP_LEN = 0.5;
@@ -136,9 +136,10 @@ const insideScene = (scene: Scene, p: Vector2): boolean => {
 };
 
 const castRay = (scene: Scene, p1: Vector2, p2: Vector2): Vector2 => {
-  for (;;) {
+  let start = p1;
+  while (start.distanceTo(p1) < FAR_CLIPPING_PLANE) {
     const c = hittingCell(p1, p2);
-    if (!insideScene(scene, c) || scene[c.y][c.x]) break;
+    if (insideScene(scene, c) && scene[c.y][c.x]) break;
     const p3 = rayStep(p1, p2);
     p1 = p2;
     p2 = p3;
