@@ -302,7 +302,9 @@ const renderScene = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
         ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
       } else if (cell instanceof HTMLImageElement) {
         const t = p.sub(c);
-        const u = Math.abs(t.x - 1) < EPS ? t.y : t.x;
+        let u = (Math.abs(t.x) < EPS || Math.abs(t.x - 1) < EPS) && t.y > 0
+          ? t.y
+          : t.x;
         ctx.drawImage(cell, u*cell.width, 0, 1, cell.height, x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
       }
     }
@@ -338,9 +340,10 @@ const loadImageData = (url: string): Promise<HTMLImageElement> => {
   const ctx = game.getContext('2d')!;
 
   const cat = await loadImageData('/cat.jpg');
+  const smile = await loadImageData('/smile.jpg');
 
   const scene: Scene = [
-    [null, null,        Color.cyan(),  Color.purple(), null, null, null, null, null],
+    [null, null,        smile,         Color.purple(), null, null, null, null, null],
     [null, null,        null,          Color.yellow(), null, null, null, null, null],
     [null, Color.red(), Color.green(), cat,   null, null, null, null, null],
     [null, null,        null,          null,           null, null, null, null, null],
