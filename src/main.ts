@@ -58,7 +58,11 @@ class Vector2 {
   }
 
   get length(): number {
-    return Math.sqrt(this.x*this.x + this.y*this.y)
+    return Math.sqrt(this.x*this.x + this.y*this.y);
+  }
+
+  get sqrLength(): number {
+    return this.x*this.x + this.y*this.y;
   }
 
   norm(): Vector2 {
@@ -68,6 +72,10 @@ class Vector2 {
 
   distanceTo(other: Vector2): number {
     return other.sub(this).length;
+  }
+
+  sqrDistanceTo(other: Vector2): number {
+    return other.sub(this).sqrLength;
   }
 }
 
@@ -115,7 +123,7 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
       const y3 = snap(p2.y, d.y);
       const x3 = (y3 - c)/k;
       const p3t = new Vector2(x3, y3);
-      if (p2.distanceTo(p3t) < p2.distanceTo(p3)) {
+      if (p2.sqrDistanceTo(p3t) < p2.sqrDistanceTo(p3)) {
         p3 = p3t;
       }
     }
@@ -137,7 +145,7 @@ const insideScene = (scene: Scene, p: Vector2): boolean => {
 
 const castRay = (scene: Scene, p1: Vector2, p2: Vector2): Vector2 => {
   let start = p1;
-  while (start.distanceTo(p1) < FAR_CLIPPING_PLANE) {
+  while (start.sqrDistanceTo(p1) < FAR_CLIPPING_PLANE*FAR_CLIPPING_PLANE) {
     const c = hittingCell(p1, p2);
     if (insideScene(scene, c) && scene[c.y][c.x]) break;
     const p3 = rayStep(p1, p2);
