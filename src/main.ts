@@ -1,8 +1,8 @@
 import './style.css';
 
-const EPS = 1e-3;
+const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 1.0;
-const FAR_CLIPPING_PLANE = 10.0;
+//const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
 const SCREEN_WIDTH = 300;
 const PLAYER_STEP_LEN = 0.5;
@@ -43,6 +43,10 @@ class Vector2 {
 
   scale(value: number): Vector2 {
     return new Vector2(this.x*value, this.y*value);
+  }
+
+  dot(other: Vector2): number {
+    return this.x*other.x + this.y*other.y;
   }
 
   lerp(other: Vector2, t: number): Vector2 {
@@ -214,8 +218,9 @@ const renderScene = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
     const p = castRay(scene, player.position, p1.lerp(p2, x/SCREEN_WIDTH));
     const c = hittingCell(player.position, p);
     if (insideScene(scene, c) && scene[c.y][c.x]) {
-      const t = 1 - p.sub(player.position).length/FAR_CLIPPING_PLANE;
-      const stripHeight = t*ctx.canvas.height;
+      const v = p.sub(player.position);
+      const d = Vector2.fromAngle(player.direction);
+      const stripHeight = ctx.canvas.height/v.dot(d);
       ctx.fillStyle = scene[c.y][c.x]!;
       ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
     }
