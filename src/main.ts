@@ -7,6 +7,69 @@ const FOV = Math.PI*0.5;
 const SCREEN_WIDTH = 300;
 const PLAYER_SPEED = 2;
 
+class Color {
+  constructor(
+    public r: number,
+    public g: number,
+    public b: number,
+    public a: number,
+  ) {}
+
+  static red(): Color {
+    return new Color(1, 0, 0, 1);
+    //return new Color(0.95, 0.55, 0.66, 1);
+  }
+
+  static green(): Color {
+    return new Color(0, 1, 0, 1);
+    //return new Color(0.65, 0.89, 0.63, 1);
+  }
+
+  static blue(): Color {
+    return new Color(0, 0, 1, 1);
+    //return new Color(0.54, 0.71, 0.98, 1);
+  }
+
+  static yellow(): Color {
+    return new Color(1, 1, 0, 1);
+    //return new Color(0.98, 0.89, 0.69, 1);
+  }
+
+  static cyan(): Color {
+    return new Color(0, 1, 1, 1);
+    //return new Color(0.58, 0.89, 0.84, 1);
+  }
+
+  static purple(): Color {
+    return new Color(1, 0, 1, 1);
+  }
+
+  static mauve(): Color {
+    return new Color(0.80, 0.65, 0.97, 1);
+  }
+
+  static darkGrey(): Color {
+    return new Color(0.12, 0.12, 0.18, 1);
+  }
+
+  static lightGrey(): Color {
+    return new Color(0.35, 0.36, 0.44, 1);
+  }
+
+  brightness(factor: number): Color {
+    return new Color(
+      this.r*factor,
+      this.g*factor,
+      this.b*factor,
+      this.a*factor,
+    );
+  }
+
+  toString(): string {
+    return `rgba(${Math.floor(this.r*255)}, ${Math.floor(this.g*255)}, ${Math.floor(this.b*255)}, ${this.a})`;
+  }
+}
+
 class Vector2 {
   constructor(
     public x: number,
@@ -136,7 +199,7 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
   return p3;
 };
 
-type Scene = Array<Array<string | null>>;
+type Scene = Array<Array<Color | null>>;
 
 const insideScene = (scene: Scene, p: Vector2): boolean => {
   const size = sceneSize(scene);
@@ -188,19 +251,19 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   ctx.scale(...size.div(gridSize).toArray());
   ctx.lineWidth = 0.1;
 
-  ctx.fillStyle = '#171727';
+  ctx.fillStyle = Color.darkGrey().toString();
   ctx.fillRect(0, 0, ...gridSize.toArray());
 
   for (let y = 0; y < gridSize.y; ++y) {
     for (let x = 0; x < gridSize.x; ++x) {
       if (scene[y][x]) {
-        ctx.fillStyle = scene[y][x]!;
+        ctx.fillStyle = scene[y][x]!.toString();
         ctx.fillRect(x, y, 1, 1);
       }
     }
   }
 
-  ctx.strokeStyle = '#313244';
+  ctx.strokeStyle = Color.lightGrey().toString();
   for (let x = 0; x <= gridSize.x; ++x) {
     strokeLine(ctx, new Vector2(x, 0), new Vector2(x, gridSize.y));
   }
@@ -208,11 +271,11 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
     strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
   }
 
-  ctx.fillStyle = '#cba6f7';
+  ctx.fillStyle = Color.mauve().toString();
   fillCircle(ctx, player.position, 0.2);
 
   const [p1, p2] = player.fovRange();
-  ctx.strokeStyle = '#cba6f7';
+  ctx.strokeStyle = Color.mauve().toString();
   strokeLine(ctx, p1, p2);
   strokeLine(ctx, player.position, p1);
   strokeLine(ctx, player.position, p2);
@@ -230,7 +293,7 @@ const renderScene = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
       const v = p.sub(player.position);
       const d = Vector2.fromAngle(player.direction);
       const stripHeight = ctx.canvas.height/v.dot(d);
-      ctx.fillStyle = scene[c.y][c.x]!;
+      ctx.fillStyle = scene[c.y][c.x]!.brightness(1/v.dot(d)).toString();
       ctx.fillRect(x*stripWidth, (ctx.canvas.height - stripHeight)*0.5, stripWidth, stripHeight);
     }
   }
@@ -240,7 +303,7 @@ const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene)
   const minimapPosition = canvasSize(ctx).scale(0.03);
   const cellSize = ctx.canvas.width*0.03;
   const minimapSize = sceneSize(scene).scale(cellSize);
-  ctx.fillStyle = '#171727';
+  ctx.fillStyle = Color.darkGrey().toString();
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   renderScene(ctx, player, scene);
   renderMinimap(ctx, player, minimapPosition, minimapSize, scene);
@@ -254,13 +317,13 @@ const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene)
   const ctx = game.getContext('2d')!;
 
   const scene = [
-    [null, null,      '#eba0ac', '#cba6f7', null, null, null, null, null],
-    [null, null,      null,      '#a6e3a1', null, null, null, null, null],
-    [null, '#f5c2e7', '#fab387', '#89dceb', null, null, null, null, null],
-    [null, null,      null,      null,      null, null, null, null, null],
-    [null, null,      null,      null,      null, null, null, null, null],
-    [null, null,      null,      null,      null, null, null, null, null],
-    [null, null,      null,      null,      null, null, null, null, null],
+    [null, null,        Color.cyan(),  Color.purple(), null, null, null, null, null],
+    [null, null,        null,          Color.yellow(), null, null, null, null, null],
+    [null, Color.red(), Color.green(), Color.blue(),   null, null, null, null, null],
+    [null, null,        null,          null,           null, null, null, null, null],
+    [null, null,        null,          null,           null, null, null, null, null],
+    [null, null,        null,          null,           null, null, null, null, null],
+    [null, null,        null,          null,           null, null, null, null, null],
   ];
   const player = new Player(
     sceneSize(scene).mul(new Vector2(0.63, 0.63)),
