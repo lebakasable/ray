@@ -4,7 +4,7 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
-const SCREEN_FACTOR = 10;
+const SCREEN_FACTOR = 15;
 const SCREEN_WIDTH = 16*SCREEN_FACTOR;
 const SCREEN_HEIGHT = 9*SCREEN_FACTOR;
 const PLAYER_SPEED = 2;
@@ -220,8 +220,12 @@ class Scene {
   }
 
   getFloor(p: Vector2): Tile | undefined {
-    p;
-    return this.floor;
+    const fp = p.map(Math.floor);
+    if ((fp.x + fp.y)%2 === 0) {
+      return Color.BLACK;
+    } else {
+      return Color.LIGHT_GREY;
+    }
   }
 }
 
