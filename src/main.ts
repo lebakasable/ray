@@ -227,6 +227,15 @@ class Scene {
       return Color.LIGHT_GREY;
     }
   }
+
+  getCeiling(p: Vector2): Tile | undefined {
+    const fp = p.map(Math.floor);
+    if ((fp.x + fp.y)%2 === 0) {
+      return Color.BLUE;
+    } else {
+      return Color.MAUVE;
+    }
+  }
 }
 
 const castRay = (scene: Scene, p1: Vector2, p2: Vector2): Vector2 => {
@@ -367,6 +376,38 @@ const renderFloor = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
   ctx.restore();
 };
 
+const renderCeiling = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
+  ctx.save();
+  ctx.scale(ctx.canvas.width/SCREEN_WIDTH, ctx.canvas.height/SCREEN_HEIGHT);
+
+  const pz = SCREEN_HEIGHT/2;
+  const [p1, p2] = player.fovRange(NEAR_CLIPPING_PLANE);
+  const bp = p1.sub(player.position).length;
+  for (let y = SCREEN_HEIGHT/2; y < SCREEN_HEIGHT; ++y) {
+    const sz = SCREEN_HEIGHT - y - 1;
+    const ap = pz - sz;
+    const b = bp/ap*pz/NEAR_CLIPPING_PLANE;
+    const t1 = player.position.add(p1.sub(player.position).norm().scale(b));
+    const t2 = player.position.add(p2.sub(player.position).norm().scale(b));
+    for (let x = 0; x < SCREEN_WIDTH; ++x) {
+      const t = t1.lerp(t2, x/SCREEN_WIDTH);
+      const floor = scene.getCeiling(t);
+      if (floor instanceof Color) {
+        ctx.fillStyle = floor.toString();
+        ctx.fillRect(x, sz, 1, 1);
+      } else if (floor instanceof HTMLImageElement) {
+        const c = t.map((x) => x - Math.floor(x));
+        ctx.drawImage(
+          floor,
+          Math.floor(c.x*floor.width), Math.floor(c.y*floor.height), 1, 1,
+          x, sz, 1, 1);
+      }
+    }
+  }
+
+  ctx.restore();
+};
+
 const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
   const minimapPosition = canvasSize(ctx).scale(0.03);
   const wallSize = ctx.canvas.width*0.03;
@@ -374,6 +415,7 @@ const renderGame = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene)
   ctx.fillStyle = Color.DARK_GREY.toString();
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
   renderFloor(ctx, player, scene);
+  renderCeiling(ctx, player, scene);
   renderWalls(ctx, player, scene);
   renderMinimap(ctx, player, minimapPosition, minimapSize, scene);
 };
