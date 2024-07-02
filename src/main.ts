@@ -361,7 +361,7 @@ const renderFloor = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene
       const t = t1.lerp(t2, x/SCREEN_WIDTH);
       const floor = scene.getFloor(t);
       if (floor instanceof Color) {
-        ctx.fillStyle = floor.toString();
+        ctx.fillStyle = floor.brightness(1/player.position.distanceTo(t)).toString();
         ctx.fillRect(x, y, 1, 1);
       } else if (floor instanceof HTMLImageElement) {
         const c = t.map((x) => x - Math.floor(x));
@@ -391,15 +391,15 @@ const renderCeiling = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
     const t2 = player.position.add(p2.sub(player.position).norm().scale(b));
     for (let x = 0; x < SCREEN_WIDTH; ++x) {
       const t = t1.lerp(t2, x/SCREEN_WIDTH);
-      const floor = scene.getCeiling(t);
-      if (floor instanceof Color) {
-        ctx.fillStyle = floor.toString();
+      const ceiling = scene.getCeiling(t);
+      if (ceiling instanceof Color) {
+        ctx.fillStyle = ceiling.brightness(1/player.position.distanceTo(t)).toString();
         ctx.fillRect(x, sz, 1, 1);
-      } else if (floor instanceof HTMLImageElement) {
+      } else if (ceiling instanceof HTMLImageElement) {
         const c = t.map((x) => x - Math.floor(x));
         ctx.drawImage(
-          floor,
-          Math.floor(c.x*floor.width), Math.floor(c.y*floor.height), 1, 1,
+          ceiling,
+          Math.floor(c.x*ceiling.width), Math.floor(c.y*ceiling.height), 1, 1,
           x, sz, 1, 1);
       }
     }
