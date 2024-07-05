@@ -24,12 +24,12 @@ const loadImageData = async (url) => {
     gameCanvas.height = 9 * factor;
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    const [typescript] = await Promise.all([
+    const [claybricks] = await Promise.all([
         loadImageData('assets/images/bricks/claybricks.png').catch(() => game.RGBA.purple()),
     ]);
     let game = await import('./game.js');
     const scene = game.createScene([
-        [null, null, typescript, null, null, null, null, null, null],
+        [null, null, claybricks, null, null, null, null, null, null],
         [null, null, null, null, null, null, null, null, null],
         [null, null, null, null, null, null, null, null, null],
         [null, null, null, null, null, null, null, null, null],
