@@ -1,16 +1,13 @@
 {
   "name": "ray",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview"
+    "build": "tsc",
+    "watch": "node watch.js"
   },
   "devDependencies": {
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1",
-    "vite-plugin-checker": "^0.7.0"
+    "http-server": "^14.1.1",
+    "typescript": "^5.4.5",
+    "ws": "^8.17.1"
   }
 }
