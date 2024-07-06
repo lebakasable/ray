@@ -34,12 +34,14 @@ export class RGBA {
 export class Vector2 {
     x;
     y;
-    constructor(x, y) {
+    constructor(x = 0, y = 0) {
         this.x = x;
         this.y = y;
     }
-    static angle(angle) {
-        return new Vector2(Math.cos(angle), Math.sin(angle));
+    setAngle(angle, len = 1) {
+        this.x = Math.cos(angle) * len;
+        this.y = Math.sin(angle) * len;
+        return this;
     }
     clone() {
         return new Vector2(this.x, this.y);
@@ -251,7 +253,7 @@ export const createPlayer = (position, direction) => ({
 });
 const playerFovRange = (player) => {
     const l = Math.tan(FOV * 0.5) * NEAR_CLIPPING_PLANE;
-    const p = Vector2.angle(player.direction).scale(NEAR_CLIPPING_PLANE).add(player.position);
+    const p = new Vector2().setAngle(player.direction, NEAR_CLIPPING_PLANE).add(player.position);
     const wing = p.clone().sub(player.position).rot90().norm().scale(l);
     const p1 = p.clone().sub(wing);
     const p2 = p.add(wing);
@@ -306,7 +308,7 @@ const renderFPS = (ctx, deltaTime) => {
 };
 const renderWalls = (display, player, scene) => {
     const [r1, r2] = playerFovRange(player);
-    const d = Vector2.angle(player.direction);
+    const d = new Vector2().setAngle(player.direction);
     for (let x = 0; x < display.backImageData.width; ++x) {
         const p = castRay(scene, player.position, r1.clone().lerp(r2, x / display.backImageData.width));
         const c = hittingCell(player.position, p);
@@ -404,7 +406,7 @@ const displaySwapBackImageData = (display) => {
 };
 const renderSprites = (display, player, sprites) => {
     const sp = new Vector2(0, 0);
-    const dir = Vector2.angle(player.direction);
+    const dir = new Vector2().setAngle(player.direction);
     const [p1, p2] = playerFovRange(player);
     for (const sprite of sprites) {
         sp.copy(sprite.position).sub(player.position);
@@ -453,10 +455,10 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     player.velocity.setScalar(0);
     let angularVelocity = 0.0;
     if (player.movingForward) {
-        player.velocity.add(Vector2.angle(player.direction).scale(PLAYER_SPEED));
+        player.velocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED));
     }
     if (player.movingBackward) {
-        player.velocity.sub(Vector2.angle(player.direction).scale(PLAYER_SPEED));
+        player.velocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED));
     }
     if (player.turningLeft) {
         angularVelocity -= Math.PI * 0.75;
