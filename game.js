@@ -469,7 +469,6 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     if (sceneCanRectangleFitHere(scene, player.position.x, ny, PLAYER_SIZE, PLAYER_SIZE)) {
         player.position.y = ny;
     }
-    display.backImageData.data.fill(255);
     renderFloor(display.backImageData, player);
     renderCeiling(display.backImageData, player);
     renderWalls(display, player, scene);
