@@ -311,9 +311,12 @@ const playerFovRange = (player: Player): [Vector2, Vector2] => {
   return [p1, p2];
 };
 
-const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: Vector2, size: Vector2, scene: Scene) => {
+const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
   ctx.save();
 
+  const position = canvasSize(ctx).scale(0.03);
+  const cellSize = ctx.canvas.width*0.03;
+  const size = sceneSize(scene).scale(cellSize);
   const gridSize = sceneSize(scene);
 
   ctx.translate(position.x, position.y);
@@ -557,10 +560,6 @@ export const renderGame = (display: Display, deltaTime: number, player: Player, 
     player.position.y = ny;
   }
 
-  const minimapPosition = canvasSize(display.ctx).scale(0.03);
-  const cellSize = display.ctx.canvas.width*0.03;
-  const minimapSize = sceneSize(scene).scale(cellSize);
-
   display.backImageData.data.fill(255);
   renderFloor(display.backImageData, player);
   renderCeiling(display.backImageData, player);
@@ -569,7 +568,7 @@ export const renderGame = (display: Display, deltaTime: number, player: Player, 
   display.backCtx.putImageData(display.backImageData, 0, 0);
   display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
 
-  renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);
+  renderMinimap(display.ctx, player, scene);
 
   renderFPS(display.ctx, deltaTime);
 };

@@ -257,8 +257,11 @@ const playerFovRange = (player) => {
     const p2 = p.add(wing);
     return [p1, p2];
 };
-const renderMinimap = (ctx, player, position, size, scene) => {
+const renderMinimap = (ctx, player, scene) => {
     ctx.save();
+    const position = canvasSize(ctx).scale(0.03);
+    const cellSize = ctx.canvas.width * 0.03;
+    const size = sceneSize(scene).scale(cellSize);
     const gridSize = sceneSize(scene);
     ctx.translate(position.x, position.y);
     ctx.scale(size.x / gridSize.x, size.y / gridSize.y);
@@ -466,9 +469,6 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     if (sceneCanRectangleFitHere(scene, player.position.x, ny, PLAYER_SIZE, PLAYER_SIZE)) {
         player.position.y = ny;
     }
-    const minimapPosition = canvasSize(display.ctx).scale(0.03);
-    const cellSize = display.ctx.canvas.width * 0.03;
-    const minimapSize = sceneSize(scene).scale(cellSize);
     display.backImageData.data.fill(255);
     renderFloor(display.backImageData, player);
     renderCeiling(display.backImageData, player);
@@ -476,7 +476,7 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     renderSprites(display, player, sprites);
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
-    renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);
+    renderMinimap(display.ctx, player, scene);
     renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map
