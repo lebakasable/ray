@@ -5,7 +5,10 @@ const FOV = Math.PI * 0.5;
 const HALF_FOV_COS = Math.cos(FOV * 0.5);
 const PLAYER_STEP_LEN = 0.5;
 const PLAYER_SPEED = 2;
-const PLAYER_SIZE = 0.5;
+const MINIMAP_SPRITES = false;
+const MINIMAP_PLAYER_SIZE = 0.5;
+const MINIMAP_SPRITE_SIZE = 0.3;
+const MINIMAP_SCALE = 0.03;
 export class RGBA {
     r;
     g;
@@ -259,10 +262,10 @@ const playerFovRange = (player) => {
     const p2 = p.add(wing);
     return [p1, p2];
 };
-const renderMinimap = (ctx, player, scene) => {
+const renderMinimap = (ctx, player, sprites, scene) => {
     ctx.save();
     const position = canvasSize(ctx).scale(0.03);
-    const cellSize = ctx.canvas.width * 0.03;
+    const cellSize = ctx.canvas.width * MINIMAP_SCALE;
     const size = sceneSize(scene).scale(cellSize);
     const gridSize = sceneSize(scene);
     ctx.translate(position.x, position.y);
@@ -287,12 +290,38 @@ const renderMinimap = (ctx, player, scene) => {
         strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
     }
     ctx.fillStyle = 'magenta';
-    ctx.fillRect(player.position.x - PLAYER_SIZE * 0.5, player.position.y - PLAYER_SIZE * 0.5, PLAYER_SIZE, PLAYER_SIZE);
+    ctx.fillRect(player.position.x - MINIMAP_PLAYER_SIZE * 0.5, player.position.y - MINIMAP_PLAYER_SIZE * 0.5, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE);
     const [p1, p2] = playerFovRange(player);
     ctx.strokeStyle = 'magenta';
     strokeLine(ctx, p1, p2);
     strokeLine(ctx, player.position, p1);
     strokeLine(ctx, player.position, p2);
+    if (MINIMAP_SPRITES) {
+        ctx.fillStyle = 'red';
+        ctx.strokeStyle = 'yellow';
+        const sp = new Vector2();
+        const dir = new Vector2().setAngle(player.direction);
+        strokeLine(ctx, player.position, player.position.clone().add(dir));
+        for (const sprite of sprites) {
+            ctx.fillRect(sprite.position.x - MINIMAP_SPRITE_SIZE * 0.5, sprite.position.y - MINIMAP_SPRITE_SIZE * 0.5, MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE);
+            sp.copy(sprite.position).sub(player.position);
+            strokeLine(ctx, player.position, player.position.clone().add(sp));
+            const spl = sp.length();
+            if (spl <= NEAR_CLIPPING_PLANE)
+                continue;
+            if (spl >= FAR_CLIPPING_PLANE)
+                continue;
+            const dot = sp.dot(dir) / spl;
+            ctx.fillStyle = 'white';
+            ctx.font = '0.5px bold';
+            ctx.fillText(`${dot}`, player.position.x, player.position.y);
+            if (!(HALF_FOV_COS <= dot))
+                continue;
+            const dist = NEAR_CLIPPING_PLANE / dot;
+            sp.norm().scale(dist).add(player.position);
+            ctx.fillRect(sp.x - MINIMAP_SPRITE_SIZE * 0.5, sp.y - MINIMAP_SPRITE_SIZE * 0.5, MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE);
+        }
+    }
     ctx.restore();
 };
 const dts = [];
@@ -411,10 +440,12 @@ const renderSprites = (display, player, sprites) => {
     for (const sprite of sprites) {
         sp.copy(sprite.position).sub(player.position);
         const spl = sp.length();
+        if (spl <= NEAR_CLIPPING_PLANE)
+            continue;
         if (spl >= FAR_CLIPPING_PLANE)
             continue;
         const dot = sp.dot(dir) / spl;
-        if (!(HALF_FOV_COS <= dot && dot <= 1.0 + EPS))
+        if (!(HALF_FOV_COS <= dot))
             continue;
         const dist = NEAR_CLIPPING_PLANE / dot;
         sp.norm().scale(dist).add(player.position);
@@ -424,7 +455,8 @@ const renderSprites = (display, player, sprites) => {
         const pdist = sprite.position.clone().sub(player.position).dot(dir);
         if (pdist < NEAR_CLIPPING_PLANE)
             continue;
-        const spriteSize = display.backImageData.height / pdist * 1.0;
+        const spriteScale = 1.0;
+        const spriteSize = display.backImageData.height / pdist * spriteScale;
         const x1 = Math.floor(cx - spriteSize * 0.5);
         const x2 = Math.floor(x1 + spriteSize - 1);
         const bx1 = Math.max(0, x1);
@@ -468,11 +500,11 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     }
     player.direction = player.direction + angularVelocity * deltaTime;
     const nx = player.position.x + player.velocity.x * deltaTime;
-    if (sceneCanRectangleFitHere(scene, nx, player.position.y, PLAYER_SIZE, PLAYER_SIZE)) {
+    if (sceneCanRectangleFitHere(scene, nx, player.position.y, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
         player.position.x = nx;
     }
     const ny = player.position.y + player.velocity.y * deltaTime;
-    if (sceneCanRectangleFitHere(scene, player.position.x, ny, PLAYER_SIZE, PLAYER_SIZE)) {
+    if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
         player.position.y = ny;
     }
     renderFloor(display.backImageData, player);
@@ -480,7 +512,7 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     renderWalls(display, player, scene);
     renderSprites(display, player, sprites);
     displaySwapBackImageData(display);
-    renderMinimap(display.ctx, player, scene);
+    renderMinimap(display.ctx, player, sprites, scene);
     renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map
