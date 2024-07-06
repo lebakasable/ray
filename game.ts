@@ -5,6 +5,10 @@ const FOV = Math.PI*0.5;
 const HALF_FOV_COS = Math.cos(FOV*0.5);
 const PLAYER_STEP_LEN = 0.5;
 const PLAYER_SPEED = 2;
+const PLAYER_RADIUS = 0.5;
+
+const ITEM_FREQ = 1.0;
+const ITEM_AMP = 0.03;
 
 const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
@@ -314,7 +318,7 @@ const playerFovRange = (player: Player): [Vector2, Vector2] => {
   return [p1, p2];
 };
 
-const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, sprites: Sprite[], scene: Scene) => {
+const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, spritePool: SpritePool, scene: Scene) => {
   ctx.save();
 
   const cellSize = ctx.canvas.width*MINIMAP_SCALE;
@@ -364,7 +368,9 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, sprites: S
     const sp = new Vector2();
     const dir = new Vector2().setAngle(player.direction);
     strokeLine(ctx, player.position, player.position.clone().add(dir));
-    for (const sprite of sprites) {
+    for (let i = 0; i < spritePool.count; ++i) {
+      const sprite = spritePool.sprites[i];
+
       ctx.fillRect(
         sprite.position.x - MINIMAP_SPRITE_SIZE*0.5,
         sprite.position.y - MINIMAP_SPRITE_SIZE*0.5,
@@ -519,13 +525,15 @@ export interface Sprite {
 }
 
 const visibleSprites: Sprite[] = [];
-const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
+const renderSprites = (display: Display, player: Player, spritePool: SpritePool) => {
   const sp = new Vector2(0, 0);
   const dir = new Vector2().setAngle(player.direction);
   const [p1, p2] = playerFovRange(player);
 
   visibleSprites.length = 0;
-  for (const sprite of sprites) {
+  for (let i = 0; i < spritePool.count; ++i) {
+    const sprite = spritePool.sprites[i];
+
     sp.copy(sprite.position).sub(player.position);
     const spl = sp.length();
     if (spl <= NEAR_CLIPPING_PLANE) continue;
@@ -580,7 +588,45 @@ const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
   }
 };
 
-export const renderGame = (display: Display, deltaTime: number, player: Player, scene: Scene, sprites: Sprite[]) => {
+export interface SpritePool {
+  sprites: Sprite[];
+  count: number;
+}
+
+const pushSprite = (spritePool: SpritePool, imageData: ImageData, position: Vector2, z: number, scale: number) => {
+  if (spritePool.sprites.length <= spritePool.count) {
+    spritePool.sprites.push({
+      imageData,
+      position,
+      z,
+      scale,
+
+      pdist: 0,
+      t: 0,
+    });
+  } else {
+    spritePool.sprites[spritePool.count].imageData = imageData;
+    spritePool.sprites[spritePool.count].position = position;
+    spritePool.sprites[spritePool.count].z = z;
+    spritePool.sprites[spritePool.count].scale = scale;
+  }
+  spritePool.count += 1;
+};
+
+export const createSpritePool = (): SpritePool =>
+  ({
+    sprites: [],
+    count: 0,
+  });
+
+interface Item {
+  alive: boolean;
+  imageData: ImageData;
+  pickupAudio: HTMLAudioElement;
+  position: Vector2;
+}
+
+export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[]) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
@@ -605,12 +651,28 @@ export const renderGame = (display: Display, deltaTime: number, player: Player, 
     player.position.y = ny;
   }
 
+  for (const item of items) {
+    if (item.alive) {
+      if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS*PLAYER_RADIUS) {
+        item.pickupAudio.currentTime = 0;
+        item.pickupAudio.play();
+        item.alive = false;
+      }
+    }
+  }
+
+  spritePool.count = 0;
+  for (const item of items) {
+    if (item.alive) {
+      pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);
+    }
+  }
+
   renderFloorAndCeiling(display.backImageData, player);
   renderWalls(display, player, scene);
-  renderSprites(display, player, sprites);
+  renderSprites(display, player, spritePool);
   displaySwapBackImageData(display);
 
-  renderMinimap(display.ctx, player, sprites, scene);
-
+  // renderMinimap(display.ctx, player, spritePool, scene);
   renderFPS(display.ctx, deltaTime);
 };

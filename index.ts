@@ -31,6 +31,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     loadImageData('assets/images/wall.png'),
     loadImageData('assets/images/key.png'),
   ]);
+  const keyPickup = new Audio('assets/sounds/key-pickup.wav');
 
   let game = await import('./game.js');
   const scene = game.createScene([
@@ -43,60 +44,44 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     [null, null, null, null, null, null, null],
   ]);
 
-  const KEY_SCALE = 0.4;
-  const KEY_Z = KEY_SCALE;
-  const sprites = [
-    {
-      imageData: key,
-      position: new game.Vector2(2.5, 1.5),
-      z: KEY_Z,
-      scale: KEY_SCALE,
-
-      pdist: 0,
-      t: 0,
-    },
-    {
-      imageData: key,
-      position: new game.Vector2(3.0, 1.5),
-      z: KEY_Z,
-      scale: KEY_SCALE,
-
-      pdist: 0,
-      t: 0,
-    },
-    {
-      imageData: key,
-      position: new game.Vector2(3.5, 1.5),
-      z: KEY_Z,
-      scale: KEY_SCALE,
-
-      pdist: 0,
-      t: 0,
-    },
-    {
-      imageData: key,
-      position: new game.Vector2(4.0, 1.5),
-      z: KEY_Z,
-      scale: KEY_SCALE,
-
-      pdist: 0,
-      t: 0,
-    },
-    {
-      imageData: key,
-      position: new game.Vector2(4.5, 1.5),
-      z: KEY_Z,
-      scale: KEY_SCALE,
-
-      pdist: 0,
-      t: 0,
-    },
-  ];
-
   const player = game.createPlayer(
     game.sceneSize(scene).scale(0.63),
     Math.PI*1.25,
   );
+
+  const spritePool = game.createSpritePool();
+  const items = [
+    {
+      alive: true,
+      imageData: key,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(2.5, 1.5),
+    },
+    {
+      alive: true,
+      imageData: key,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(3, 1.5),
+    },
+    {
+      alive: true,
+      imageData: key,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(3.5, 1.5),
+    },
+    {
+      alive: true,
+      imageData: key,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(4, 1.5),
+    },
+    {
+      alive: true,
+      imageData: key,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(4.5, 1.5),
+    },
+  ];
 
   const isDev = window.location.hostname === 'localhost';
   if (isDev) {
@@ -148,8 +133,9 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   let prevTimestamp = 0;
   const frame = (timestamp: number) => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
+    const time = timestamp/1000;
     prevTimestamp = timestamp;
-    game.renderGame(display, deltaTime, player, scene, sprites);
+    game.renderGame(display, deltaTime, time, player, scene, spritePool,items);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {
