@@ -398,6 +398,10 @@ const renderFloor = (imageData, player) => {
         }
     }
 };
+const displaySwapBackImageData = (display) => {
+    display.backCtx.putImageData(display.backImageData, 0, 0);
+    display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
+};
 const renderSprites = (display, player, sprites) => {
     const sp = new Vector2(0, 0);
     const dir = Vector2.angle(player.direction);
@@ -473,8 +477,7 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     renderCeiling(display.backImageData, player);
     renderWalls(display, player, scene);
     renderSprites(display, player, sprites);
-    display.backCtx.putImageData(display.backImageData, 0, 0);
-    display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
+    displaySwapBackImageData(display);
     renderMinimap(display.ctx, player, scene);
     renderFPS(display.ctx, deltaTime);
 };
