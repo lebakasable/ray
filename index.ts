@@ -33,6 +33,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     loadImageData('assets/images/bomb.png'),
   ]);
   const keyPickup = new Audio('assets/sounds/key-pickup.wav');
+  const bombPickup = new Audio('assets/sounds/bomb-pickup.ogg');
   const bombRicochet = new Audio('assets/sounds/ricochet.wav');
 
   let game = await import('./game.js');
@@ -56,7 +57,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     {
       alive: true,
       imageData: bomb,
-      pickupAudio: keyPickup,
+      pickupAudio: bombPickup,
       position: new game.Vector2(1.5, 2.5),
     },
     {

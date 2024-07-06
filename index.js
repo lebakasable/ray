@@ -30,6 +30,7 @@ const loadImageData = async (url) => {
         loadImageData('assets/images/bomb.png'),
     ]);
     const keyPickup = new Audio('assets/sounds/key-pickup.wav');
+    const bombPickup = new Audio('assets/sounds/bomb-pickup.ogg');
     const bombRicochet = new Audio('assets/sounds/ricochet.wav');
     let game = await import('./game.js');
     const scene = game.createScene([
@@ -47,7 +48,7 @@ const loadImageData = async (url) => {
         {
             alive: true,
             imageData: bomb,
-            pickupAudio: keyPickup,
+            pickupAudio: bombPickup,
             position: new game.Vector2(1.5, 2.5),
         },
         {
