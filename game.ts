@@ -144,6 +144,120 @@ export class Vector2 {
   }
 }
 
+export class Vector3 {
+  constructor(
+    public x: number = 0,
+    public y: number = 0,
+    public z: number = 0,
+  ) {}
+
+  clone(): Vector3 {
+    return new Vector3(this.x, this.y, this.z)
+  }
+
+  clone2(): Vector2 {
+    return new Vector2(this.x, this.y)
+  }
+
+  copy(that: Vector3): this {
+    this.x = that.x;
+    this.y = that.y;
+    this.z = that.z;
+    return this;
+  }
+
+  copy2(that: Vector2, z: number): this {
+    this.x = that.x;
+    this.y = that.y;
+    this.z = z;
+    return this;
+  }
+
+  setScalar(scalar: number): this {
+    this.x = scalar;
+    this.y = scalar;
+    this.z = scalar;
+    return this;
+  }
+
+  add(that: Vector3): this {
+    this.x += that.x;
+    this.y += that.y;
+    this.z += that.z;
+    return this;
+  }
+
+  sub(that: Vector3): this {
+    this.x -= that.x;
+    this.y -= that.y;
+    this.z -= that.z;
+    return this;
+  }
+
+  div(that: Vector3): this {
+    this.x /= that.x;
+    this.y /= that.y;
+    this.z /= that.z;
+    return this;
+  }
+
+  mul(that: Vector3): this {
+    this.x *= that.x;
+    this.y *= that.y;
+    this.z *= that.z;
+    return this;
+  }
+
+  sqrLength(): number {
+    return this.x*this.x + this.y*this.y + this.z*this.z;
+  }
+
+  length(): number {
+    return Math.sqrt(this.sqrLength());
+  }
+
+  scale(value: number): this {
+    this.x *= value;
+    this.y *= value;
+    this.z *= value;
+    return this;
+  }
+
+  norm(): this {
+    const l = this.length();
+    return l === 0 ? this : this.scale(1/l);
+  }
+
+  sqrDistanceTo(that: Vector3): number {
+    const dx = that.x - this.x;
+    const dy = that.y - this.y;
+    const dz = that.z - this.z;
+    return dx*dx + dy*dy + dz*dz;
+  }
+
+  distanceTo(that: Vector3): number {
+    return Math.sqrt(this.sqrDistanceTo(that));
+  }
+
+  lerp(that: Vector3, t: number): this {
+    this.x += (that.x - this.x)*t;
+    this.y += (that.y - this.y)*t;
+    this.z += (that.z - this.z)*t;
+    return this;
+  }
+
+  dot(that: Vector3): number {
+    return this.x*that.x + this.y*that.y + this.z*that.z;
+  }
+
+  map(f: (x: number) => number): this {
+    this.x = f(this.x);
+    this.y = f(this.y);
+    this.z = f(this.z);
+    return this;
+  }
+}
+
 const strokeLine = (ctx: CanvasRenderingContext2D, p1: Vector2, p2: Vector2) => {
   ctx.beginPath();
   ctx.moveTo(p1.x, p1.y);
@@ -626,7 +740,41 @@ interface Item {
   position: Vector2;
 }
 
-export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[]) => {
+interface Bomb {
+  position: Vector3;
+  velocity: Vector3;
+  lifetime: number;
+}
+
+export const allocateBombs = (capacity: number): Bomb[] => {
+  const bombs: Bomb[] = [];
+  for (let i = 0; i < capacity; ++i) {
+    bombs.push({
+      position: new Vector3(),
+      velocity: new Vector3(),
+      lifetime: 0,
+    });
+  }
+  return bombs;
+};
+
+const BOMB_THROW_VELOCITY = 5;
+const GRAVITY = new Vector3(0, 0, -10);
+
+export const throwBomb = (player: Player, bombs: Bomb[]) => {
+  for (let bomb of bombs) {
+    if (bomb.lifetime <= 0) {
+      bomb.lifetime = 5.0;
+      bomb.position.copy2(player.position, 0.6);
+      bomb.velocity.x = Math.cos(player.direction);
+      bomb.velocity.y = Math.sin(player.direction);
+      bomb.velocity.scale(BOMB_THROW_VELOCITY);
+      break;
+    }
+  }
+};
+
+export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochet: HTMLAudioElement) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
@@ -662,6 +810,51 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
   }
 
   spritePool.count = 0;
+
+  for (const bomb of bombs) {
+    if (bomb.lifetime > 0) {
+      bomb.lifetime -= deltaTime;
+      bomb.velocity.x += GRAVITY.z*deltaTime;
+
+      const nx = bomb.position.x + bomb.velocity.x*deltaTime;
+      const ny = bomb.position.y + bomb.velocity.y*deltaTime;
+      const BOMB_DAMP = 0.8;
+      if (sceneIsWall(scene, new Vector2(nx, ny))) {
+        const dx = Math.abs(Math.floor(bomb.position.x) - Math.floor(nx));
+        const dy = Math.abs(Math.floor(bomb.position.y) - Math.floor(ny));
+
+        if (dx > 0) bomb.velocity.x *= -1
+        if (dy > 0) bomb.velocity.y *= -1
+        bomb.velocity.scale(BOMB_DAMP);
+        if (bomb.velocity.length() > 1) {
+          bombRicochet.currentTime = 0;
+          bombRicochet.play();
+        }
+      } else {
+        bomb.position.x = nx;
+        bomb.position.y = ny;
+      }
+
+      const nz = bomb.position.z + bomb.velocity.z*deltaTime;
+      if (nz < 0.25 || nz > 1.0) {
+        bomb.velocity.z *= -1;
+        bomb.velocity.scale(BOMB_DAMP);
+        if (bomb.velocity.length()>1) {
+          bombRicochet.currentTime = 0;
+          bombRicochet.play();
+        }
+      } else {
+        bomb.position.z = nz;
+      }
+
+      if (bomb.lifetime <= 0) {
+
+      } else {
+        pushSprite(spritePool, bombImageData, bomb.position.clone2(), bomb.position.z, 0.25);
+      }
+    }
+  }
+
   for (const item of items) {
     if (item.alive) {
       pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);

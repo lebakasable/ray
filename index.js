@@ -24,11 +24,13 @@ const loadImageData = async (url) => {
     gameCanvas.height = 9 * factor;
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    const [wall, key] = await Promise.all([
+    const [wall, key, bomb] = await Promise.all([
         loadImageData('assets/images/wall.png'),
         loadImageData('assets/images/key.png'),
+        loadImageData('assets/images/bomb.png'),
     ]);
     const keyPickup = new Audio('assets/sounds/key-pickup.wav');
+    const bombRicochet = new Audio('assets/sounds/ricochet.wav');
     let game = await import('./game.js');
     const scene = game.createScene([
         [null, null, wall, wall, wall, null, null],
@@ -42,6 +44,12 @@ const loadImageData = async (url) => {
     const player = game.createPlayer(game.sceneSize(scene).scale(0.63), Math.PI * 1.25);
     const spritePool = game.createSpritePool();
     const items = [
+        {
+            alive: true,
+            imageData: bomb,
+            pickupAudio: keyPickup,
+            position: new game.Vector2(1.5, 2.5),
+        },
         {
             alive: true,
             imageData: key,
@@ -73,6 +81,7 @@ const loadImageData = async (url) => {
             position: new game.Vector2(4.5, 1.5),
         },
     ];
+    const bombs = game.allocateBombs(10);
     const isDev = window.location.hostname === 'localhost';
     if (isDev) {
         const ws = new WebSocket('ws://localhost:6970');
@@ -116,6 +125,12 @@ const loadImageData = async (url) => {
                 case 'KeyD':
                     player.turningRight = true;
                     break;
+                case 'Space':
+                    {
+                        game.throwBomb(player, bombs);
+                        console.log(bombs);
+                    }
+                    break;
             }
         }
     });
@@ -146,7 +161,7 @@ const loadImageData = async (url) => {
         const deltaTime = (timestamp - prevTimestamp) / 1000;
         const time = timestamp / 1000;
         prevTimestamp = timestamp;
-        game.renderGame(display, deltaTime, time, player, scene, spritePool, items);
+        game.renderGame(display, deltaTime, time, player, scene, spritePool, items, bombs, bomb, bombRicochet);
         window.requestAnimationFrame(frame);
     };
     window.requestAnimationFrame((timestamp) => {

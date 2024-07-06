@@ -27,11 +27,13 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const ctx = gameCanvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
-  const [wall, key] = await Promise.all([
+  const [wall, key, bomb] = await Promise.all([
     loadImageData('assets/images/wall.png'),
     loadImageData('assets/images/key.png'),
+    loadImageData('assets/images/bomb.png'),
   ]);
   const keyPickup = new Audio('assets/sounds/key-pickup.wav');
+  const bombRicochet = new Audio('assets/sounds/ricochet.wav');
 
   let game = await import('./game.js');
   const scene = game.createScene([
@@ -51,6 +53,12 @@ const loadImageData = async (url: string): Promise<ImageData> => {
 
   const spritePool = game.createSpritePool();
   const items = [
+    {
+      alive: true,
+      imageData: bomb,
+      pickupAudio: keyPickup,
+      position: new game.Vector2(1.5, 2.5),
+    },
     {
       alive: true,
       imageData: key,
@@ -82,6 +90,8 @@ const loadImageData = async (url: string): Promise<ImageData> => {
       position: new game.Vector2(4.5, 1.5),
     },
   ];
+
+  const bombs = game.allocateBombs(10);
 
   const isDev = window.location.hostname === 'localhost';
   if (isDev) {
@@ -116,6 +126,10 @@ const loadImageData = async (url: string): Promise<ImageData> => {
         case 'ArrowDown':  case 'KeyS': player.movingBackward = true; break;
         case 'ArrowLeft':  case 'KeyA': player.turningLeft    = true; break;
         case 'ArrowRight': case 'KeyD': player.turningRight   = true; break;
+        case 'Space': {
+          game.throwBomb(player, bombs);
+          console.log(bombs);
+        } break;
       }
     }
   });
@@ -135,7 +149,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
     const time = timestamp/1000;
     prevTimestamp = timestamp;
-    game.renderGame(display, deltaTime, time, player, scene, spritePool,items);
+    game.renderGame(display, deltaTime, time, player, scene, spritePool, items, bombs, bomb, bombRicochet);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {

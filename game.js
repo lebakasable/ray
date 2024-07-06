@@ -125,6 +125,104 @@ export class Vector2 {
         return this;
     }
 }
+export class Vector3 {
+    x;
+    y;
+    z;
+    constructor(x = 0, y = 0, z = 0) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+    clone() {
+        return new Vector3(this.x, this.y, this.z);
+    }
+    clone2() {
+        return new Vector2(this.x, this.y);
+    }
+    copy(that) {
+        this.x = that.x;
+        this.y = that.y;
+        this.z = that.z;
+        return this;
+    }
+    copy2(that, z) {
+        this.x = that.x;
+        this.y = that.y;
+        this.z = z;
+        return this;
+    }
+    setScalar(scalar) {
+        this.x = scalar;
+        this.y = scalar;
+        this.z = scalar;
+        return this;
+    }
+    add(that) {
+        this.x += that.x;
+        this.y += that.y;
+        this.z += that.z;
+        return this;
+    }
+    sub(that) {
+        this.x -= that.x;
+        this.y -= that.y;
+        this.z -= that.z;
+        return this;
+    }
+    div(that) {
+        this.x /= that.x;
+        this.y /= that.y;
+        this.z /= that.z;
+        return this;
+    }
+    mul(that) {
+        this.x *= that.x;
+        this.y *= that.y;
+        this.z *= that.z;
+        return this;
+    }
+    sqrLength() {
+        return this.x * this.x + this.y * this.y + this.z * this.z;
+    }
+    length() {
+        return Math.sqrt(this.sqrLength());
+    }
+    scale(value) {
+        this.x *= value;
+        this.y *= value;
+        this.z *= value;
+        return this;
+    }
+    norm() {
+        const l = this.length();
+        return l === 0 ? this : this.scale(1 / l);
+    }
+    sqrDistanceTo(that) {
+        const dx = that.x - this.x;
+        const dy = that.y - this.y;
+        const dz = that.z - this.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+    distanceTo(that) {
+        return Math.sqrt(this.sqrDistanceTo(that));
+    }
+    lerp(that, t) {
+        this.x += (that.x - this.x) * t;
+        this.y += (that.y - this.y) * t;
+        this.z += (that.z - this.z) * t;
+        return this;
+    }
+    dot(that) {
+        return this.x * that.x + this.y * that.y + this.z * that.z;
+    }
+    map(f) {
+        this.x = f(this.x);
+        this.y = f(this.y);
+        this.z = f(this.z);
+        return this;
+    }
+}
 const strokeLine = (ctx, p1, p2) => {
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
@@ -507,7 +605,32 @@ export const createSpritePool = () => ({
     sprites: [],
     count: 0,
 });
-export const renderGame = (display, deltaTime, time, player, scene, spritePool, items) => {
+export const allocateBombs = (capacity) => {
+    const bombs = [];
+    for (let i = 0; i < capacity; ++i) {
+        bombs.push({
+            position: new Vector3(),
+            velocity: new Vector3(),
+            lifetime: 0,
+        });
+    }
+    return bombs;
+};
+const BOMB_THROW_VELOCITY = 5;
+const GRAVITY = new Vector3(0, 0, -10);
+export const throwBomb = (player, bombs) => {
+    for (let bomb of bombs) {
+        if (bomb.lifetime <= 0) {
+            bomb.lifetime = 5.0;
+            bomb.position.copy2(player.position, 0.6);
+            bomb.velocity.x = Math.cos(player.direction);
+            bomb.velocity.y = Math.sin(player.direction);
+            bomb.velocity.scale(BOMB_THROW_VELOCITY);
+            break;
+        }
+    }
+};
+export const renderGame = (display, deltaTime, time, player, scene, spritePool, items, bombs, bombImageData, bombRicochet) => {
     player.velocity.setScalar(0);
     let angularVelocity = 0.0;
     if (player.movingForward) {
@@ -541,6 +664,49 @@ export const renderGame = (display, deltaTime, time, player, scene, spritePool, 
         }
     }
     spritePool.count = 0;
+    for (const bomb of bombs) {
+        if (bomb.lifetime > 0) {
+            bomb.lifetime -= deltaTime;
+            bomb.velocity.x += GRAVITY.z * deltaTime;
+            const nx = bomb.position.x + bomb.velocity.x * deltaTime;
+            const ny = bomb.position.y + bomb.velocity.y * deltaTime;
+            const BOMB_DAMP = 0.8;
+            if (sceneIsWall(scene, new Vector2(nx, ny))) {
+                const dx = Math.abs(Math.floor(bomb.position.x) - Math.floor(nx));
+                const dy = Math.abs(Math.floor(bomb.position.y) - Math.floor(ny));
+                if (dx > 0)
+                    bomb.velocity.x *= -1;
+                if (dy > 0)
+                    bomb.velocity.y *= -1;
+                bomb.velocity.scale(BOMB_DAMP);
+                if (bomb.velocity.length() > 1) {
+                    bombRicochet.currentTime = 0;
+                    bombRicochet.play();
+                }
+            }
+            else {
+                bomb.position.x = nx;
+                bomb.position.y = ny;
+            }
+            const nz = bomb.position.z + bomb.velocity.z * deltaTime;
+            if (nz < 0.25 || nz > 1.0) {
+                bomb.velocity.z *= -1;
+                bomb.velocity.scale(BOMB_DAMP);
+                if (bomb.velocity.length() > 1) {
+                    bombRicochet.currentTime = 0;
+                    bombRicochet.play();
+                }
+            }
+            else {
+                bomb.position.z = nz;
+            }
+            if (bomb.lifetime <= 0) {
+            }
+            else {
+                pushSprite(spritePool, bombImageData, bomb.position.clone2(), bomb.position.z, 0.25);
+            }
+        }
+    }
     for (const item of items) {
         if (item.alive) {
             pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
