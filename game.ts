@@ -140,9 +140,6 @@ export class Vector2 {
   }
 }
 
-const canvasSize = (ctx: CanvasRenderingContext2D): Vector2 =>
-  new Vector2(ctx.canvas.width, ctx.canvas.height);
-
 const strokeLine = (ctx: CanvasRenderingContext2D, p1: Vector2, p2: Vector2) => {
   ctx.beginPath();
   ctx.moveTo(p1.x, p1.y);
@@ -320,13 +317,11 @@ const playerFovRange = (player: Player): [Vector2, Vector2] => {
 const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, sprites: Sprite[], scene: Scene) => {
   ctx.save();
 
-  const position = canvasSize(ctx).scale(0.03);
   const cellSize = ctx.canvas.width*MINIMAP_SCALE;
-  const size = sceneSize(scene).scale(cellSize);
   const gridSize = sceneSize(scene);
 
-  ctx.translate(position.x, position.y);
-  ctx.scale(size.x/gridSize.x, size.y/gridSize.y);
+  ctx.translate(ctx.canvas.width*0.03, ctx.canvas.height*0.03);
+  ctx.scale(cellSize, cellSize);
 
   ctx.fillStyle = '#181818';
   ctx.fillRect(0, 0, gridSize.x, gridSize.y);
