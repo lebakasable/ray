@@ -32,8 +32,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     loadImageData('assets/images/key.png'),
     loadImageData('assets/images/bomb.png'),
   ]);
-  const keyPickup = new Audio('assets/sounds/key-pickup.wav');
-  const bombPickup = new Audio('assets/sounds/bomb-pickup.ogg');
+  const itemPickup = new Audio('assets/sounds/pickup.ogg');
   const bombRicochet = new Audio('assets/sounds/ricochet.wav');
 
   let game = await import('./game.js');
@@ -57,37 +56,31 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     {
       alive: true,
       imageData: bomb,
-      pickupAudio: bombPickup,
       position: new game.Vector2(1.5, 2.5),
     },
     {
       alive: true,
       imageData: key,
-      pickupAudio: keyPickup,
       position: new game.Vector2(2.5, 1.5),
     },
     {
       alive: true,
       imageData: key,
-      pickupAudio: keyPickup,
       position: new game.Vector2(3, 1.5),
     },
     {
       alive: true,
       imageData: key,
-      pickupAudio: keyPickup,
       position: new game.Vector2(3.5, 1.5),
     },
     {
       alive: true,
       imageData: key,
-      pickupAudio: keyPickup,
       position: new game.Vector2(4, 1.5),
     },
     {
       alive: true,
       imageData: key,
-      pickupAudio: keyPickup,
       position: new game.Vector2(4.5, 1.5),
     },
   ];
@@ -150,7 +143,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
     const time = timestamp/1000;
     prevTimestamp = timestamp;
-    game.renderGame(display, deltaTime, time, player, scene, spritePool, items, bombs, bomb, bombRicochet);
+    game.renderGame(display, deltaTime, time, player, scene, spritePool, items, bombs, bomb, bombRicochet, itemPickup);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {

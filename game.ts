@@ -739,7 +739,6 @@ export const createSpritePool = (): SpritePool =>
 interface Item {
   alive: boolean;
   imageData: ImageData;
-  pickupAudio: HTMLAudioElement;
   position: Vector2;
 }
 
@@ -778,7 +777,7 @@ export const throwBomb = (player: Player, bombs: Bomb[]) => {
   }
 };
 
-export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochet: HTMLAudioElement) => {
+export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochet: HTMLAudioElement, itemPickup: HTMLAudioElement) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
@@ -806,8 +805,8 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
   for (const item of items) {
     if (item.alive) {
       if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS*PLAYER_RADIUS) {
-        item.pickupAudio.currentTime = 0;
-        item.pickupAudio.play();
+        itemPickup.currentTime = 0;
+        itemPickup.play();
         item.alive = false;
       }
     }

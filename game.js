@@ -634,7 +634,7 @@ export const throwBomb = (player, bombs) => {
         }
     }
 };
-export const renderGame = (display, deltaTime, time, player, scene, spritePool, items, bombs, bombImageData, bombRicochet) => {
+export const renderGame = (display, deltaTime, time, player, scene, spritePool, items, bombs, bombImageData, bombRicochet, itemPickup) => {
     player.velocity.setScalar(0);
     let angularVelocity = 0.0;
     if (player.movingForward) {
@@ -661,8 +661,8 @@ export const renderGame = (display, deltaTime, time, player, scene, spritePool, 
     for (const item of items) {
         if (item.alive) {
             if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS * PLAYER_RADIUS) {
-                item.pickupAudio.currentTime = 0;
-                item.pickupAudio.play();
+                itemPickup.currentTime = 0;
+                itemPickup.play();
                 item.alive = false;
             }
         }
