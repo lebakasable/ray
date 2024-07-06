@@ -37,10 +37,6 @@ export class Vector2 {
     public y: number,
   ) {}
 
-  static scalar(value: number): Vector2 {
-    return new Vector2(value, value);
-  }
-
   static angle(angle: number): Vector2 {
     return new Vector2(Math.cos(angle), Math.sin(angle));
   }
@@ -258,11 +254,11 @@ const sceneIsWall = (scene: Scene, p: Vector2): boolean => {
   return c !== null && c !== undefined;
 };
 
-const sceneCanRectangleFitHere = (scene: Scene, position: Vector2, size: Vector2): boolean => {
-  const x1 = Math.floor(position.x - size.x*0.5);
-  const x2 = Math.floor(position.x + size.x*0.5);
-  const y1 = Math.floor(position.y - size.y*0.5);
-  const y2 = Math.floor(position.y + size.y*0.5);
+const sceneCanRectangleFitHere = (scene: Scene, px: number, py: number, sx: number, sy: number): boolean => {
+  const x1 = Math.floor(px - sx*0.5);
+  const x2 = Math.floor(px + sx*0.5);
+  const y1 = Math.floor(py - sy*0.5);
+  const y2 = Math.floor(py + sy*0.5);
   for (let x = x1; x <= x2; ++x) {
     for (let y = y1; y <= y2; ++y) {
       if (sceneIsWall(scene, new Vector2(x, y))) {
@@ -538,11 +534,11 @@ export const renderGame = (display: Display, deltaTime: number, player: Player, 
   }
   player.direction = player.direction + angularVelocity*deltaTime;
   const nx = player.position.x + player.velocity.x*deltaTime;
-  if (sceneCanRectangleFitHere(scene, new Vector2(nx, player.position.y), Vector2.scalar(PLAYER_SIZE))) {
+  if (sceneCanRectangleFitHere(scene, nx, player.position.y, PLAYER_SIZE, PLAYER_SIZE)) {
     player.position.x = nx;
   }
   const ny = player.position.y + player.velocity.y*deltaTime;
-  if (sceneCanRectangleFitHere(scene, new Vector2(player.position.x, ny), Vector2.scalar(PLAYER_SIZE))) {
+  if (sceneCanRectangleFitHere(scene, player.position.x, ny, PLAYER_SIZE, PLAYER_SIZE)) {
     player.position.y = ny;
   }
 
