@@ -513,28 +513,43 @@ export interface Sprite {
   position: Vector2;
   z: number;
   scale: number;
+
+  pdist: number;
+  t: number;
 }
 
+const visibleSprites: Sprite[] = [];
 const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
   const sp = new Vector2(0, 0);
   const dir = new Vector2().setAngle(player.direction);
   const [p1, p2] = playerFovRange(player);
+
+  visibleSprites.length = 0;
   for (const sprite of sprites) {
     sp.copy(sprite.position).sub(player.position);
     const spl = sp.length();
     if (spl <= NEAR_CLIPPING_PLANE) continue;
     if (spl >= FAR_CLIPPING_PLANE) continue;
+
     const dot = sp.dot(dir)/spl;
     if (!(HALF_FOV_COS <= dot)) continue;
     const dist = NEAR_CLIPPING_PLANE/dot;
     sp.norm().scale(dist).add(player.position);
-    const t = p1.distanceTo(sp)/p1.distanceTo(p2);
+    sprite.t = p1.distanceTo(sp)/p1.distanceTo(p2);
+    sprite.pdist = sprite.position.clone().sub(player.position).dot(dir);
 
-    const cx = display.backImageData.width*t;
+    if (sprite.pdist < NEAR_CLIPPING_PLANE) continue;
+    if (sprite.pdist >= FAR_CLIPPING_PLANE) continue;
+
+    visibleSprites.push(sprite);
+  }
+
+  visibleSprites.sort((a, b) => b.pdist - a.pdist);
+
+  for (const sprite of visibleSprites) {
+    const cx = display.backImageData.width*sprite.t;
     const cy = display.backImageData.height*0.5;
-    const pdist = sprite.position.clone().sub(player.position).dot(dir);
-    if (pdist < NEAR_CLIPPING_PLANE) continue;
-    const maxSpriteSize = display.backImageData.height/pdist;
+    const maxSpriteSize = display.backImageData.height/sprite.pdist;
     const spriteSize = maxSpriteSize*sprite.scale;
     const x1 = Math.floor(cx - spriteSize*0.5);
     const x2 = Math.floor(x1 + spriteSize - 1);
@@ -548,7 +563,7 @@ const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
     const src = sprite.imageData.data;
     const dest = display.backImageData.data;
     for (let x = bx1; x <= bx2; ++x) {
-      if (pdist < display.zBuffer[x]) {
+      if (sprite.pdist < display.zBuffer[x]) {
         for (let y = by1; y <= by2; ++y) {
           const tx = Math.floor((x - x1)/spriteSize*sprite.imageData.width);
           const ty = Math.floor((y - y1)/spriteSize*sprite.imageData.height);
