@@ -357,6 +357,20 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   ctx.restore();
 };
 
+const dts: number[] = [];
+const renderFPS = (ctx: CanvasRenderingContext2D, deltaTime: number) => {
+  ctx.font = '48px bold';
+  ctx.fillStyle = 'white';
+
+  dts.push(deltaTime);
+  if (dts.length > 60) {
+    dts.shift();
+  }
+
+  const dtAvg = dts.reduce((a, b) => a + b, 0)/dts.length;
+  ctx.fillText(`${Math.floor(1/dtAvg)}`, 100, 100);
+};
+
 const renderWalls = (display: Display, player: Player, scene: Scene) => {
   const [r1, r2] = playerFovRange(player);
   const d = Vector2.angle(player.direction)
@@ -557,7 +571,5 @@ export const renderGame = (display: Display, deltaTime: number, player: Player, 
 
   renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);
 
-  display.ctx.font = '48px bold';
-  display.ctx.fillStyle = 'white';
-  display.ctx.fillText(`${Math.floor(1/deltaTime)}`, 100, 100);
+  renderFPS(display.ctx, deltaTime);
 };

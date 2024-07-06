@@ -290,6 +290,17 @@ const renderMinimap = (ctx, player, position, size, scene) => {
     strokeLine(ctx, player.position, p2);
     ctx.restore();
 };
+const dts = [];
+const renderFPS = (ctx, deltaTime) => {
+    ctx.font = '48px bold';
+    ctx.fillStyle = 'white';
+    dts.push(deltaTime);
+    if (dts.length > 60) {
+        dts.shift();
+    }
+    const dtAvg = dts.reduce((a, b) => a + b, 0) / dts.length;
+    ctx.fillText(`${Math.floor(1 / dtAvg)}`, 100, 100);
+};
 const renderWalls = (display, player, scene) => {
     const [r1, r2] = playerFovRange(player);
     const d = Vector2.angle(player.direction);
@@ -466,8 +477,6 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
     renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);
-    display.ctx.font = '48px bold';
-    display.ctx.fillStyle = 'white';
-    display.ctx.fillText(`${Math.floor(1 / deltaTime)}`, 100, 100);
+    renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map
