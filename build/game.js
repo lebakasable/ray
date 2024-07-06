@@ -2,7 +2,6 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 20.0;
 const FOV = Math.PI * 0.5;
-const HALF_FOV_COS = Math.cos(FOV * 0.5);
 const PLAYER_STEP_LEN = 0.5;
 const PLAYER_SPEED = 2;
 const PLAYER_SIZE = 0.5;
@@ -46,11 +45,6 @@ export class Vector2 {
     }
     clone() {
         return new Vector2(this.x, this.y);
-    }
-    copy(that) {
-        this.x = that.x;
-        this.y = that.y;
-        return this;
     }
     setScalar(scalar) {
         this.x = scalar;
@@ -387,49 +381,7 @@ const renderFloor = (imageData, player) => {
         }
     }
 };
-const clamp = (min, max, v) => {
-    if (v < min)
-        return min;
-    if (v > max)
-        return max;
-    return v;
-};
-const renderSprites = (display, player, sprites) => {
-    const sp = new Vector2(0, 0);
-    const dir = Vector2.angle(player.direction);
-    const [p1, p2] = playerFovRange(player);
-    for (const sprite of sprites) {
-        sp.copy(sprite.position).sub(player.position);
-        const spl = sp.length();
-        if (spl === 0)
-            continue;
-        const dot = sp.dot(dir) / spl;
-        if (!(HALF_FOV_COS <= dot && dot <= 1.0))
-            continue;
-        const dist = NEAR_CLIPPING_PLANE / dot;
-        sp.norm().scale(dist).add(player.position);
-        const t = p1.distanceTo(sp) / p1.distanceTo(p2);
-        const cx = Math.floor(display.backImageData.width * t);
-        const cy = Math.floor(display.backImageData.height * 0.5);
-        const pdist = sprite.position.clone().sub(player.position).dot(dir);
-        const spriteSize = Math.floor(display.backImageData.height / pdist * 0.5);
-        const x1 = clamp(0, display.backImageData.width - 1, Math.floor(cx - spriteSize * 0.5));
-        const x2 = clamp(0, display.backImageData.width - 1, Math.floor(cx + spriteSize * 0.5));
-        const y1 = clamp(0, display.backImageData.height - 1, Math.floor(cy - spriteSize * 0.5));
-        const y2 = clamp(0, display.backImageData.height - 1, Math.floor(cy + spriteSize * 0.5));
-        for (let x = x1; x <= x2; ++x) {
-            if (pdist < display.zBuffer[x]) {
-                for (let y = y1; y <= y2; ++y) {
-                    const index = (y * display.backImageData.width + x) * 4;
-                    display.backImageData.data[index + 0] = 255;
-                    display.backImageData.data[index + 1] = 0;
-                    display.backImageData.data[index + 2] = 0;
-                }
-            }
-        }
-    }
-};
-export const renderGame = (display, deltaTime, player, scene, sprites) => {
+export const renderGame = (display, deltaTime, player, scene) => {
     player.velocity.setScalar(0);
     let angularVelocity = 0.0;
     if (player.movingForward) {
@@ -439,10 +391,10 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
         player.velocity.sub(Vector2.angle(player.direction).scale(PLAYER_SPEED));
     }
     if (player.turningLeft) {
-        angularVelocity -= Math.PI * 0.75;
+        angularVelocity -= Math.PI;
     }
     if (player.turningRight) {
-        angularVelocity += Math.PI * 0.75;
+        angularVelocity += Math.PI;
     }
     player.direction = player.direction + angularVelocity * deltaTime;
     const nx = player.position.x + player.velocity.x * deltaTime;
@@ -460,7 +412,6 @@ export const renderGame = (display, deltaTime, player, scene, sprites) => {
     renderFloor(display.backImageData, player);
     renderCeiling(display.backImageData, player);
     renderWalls(display, player, scene);
-    renderSprites(display, player, sprites);
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
     renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);

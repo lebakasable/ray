@@ -2,6 +2,7 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 20.0;
 const FOV = Math.PI*0.5;
+const HALF_FOV_COS = Math.cos(FOV*0.5);
 const PLAYER_STEP_LEN = 0.5;
 const PLAYER_SPEED = 2;
 const PLAYER_SIZE = 0.5;
@@ -14,12 +15,12 @@ export class RGBA {
     public a: number,
   ) {}
 
-  static red(): RGBA { return new RGBA(1, 0, 0, 1); }
-  static green(): RGBA { return new RGBA(0, 1, 0, 1); }
-  static blue(): RGBA { return new RGBA(0, 0, 1, 1); }
+  static red():    RGBA { return new RGBA(1, 0, 0, 1); }
+  static green():  RGBA { return new RGBA(0, 1, 0, 1); }
+  static blue():   RGBA { return new RGBA(0, 0, 1, 1); }
   static yellow(): RGBA { return new RGBA(1, 1, 0, 1); }
   static purple(): RGBA { return new RGBA(1, 0, 1, 1); }
-  static cyan(): RGBA { return new RGBA(0, 1, 1, 1); }
+  static cyan():   RGBA { return new RGBA(0, 1, 1, 1); }
 
   toString(): string {
     return `rgba(`
@@ -46,6 +47,12 @@ export class Vector2 {
 
   clone(): Vector2 {
     return new Vector2(this.x, this.y)
+  }
+
+  copy(that: Vector2): this {
+    this.x = that.x;
+    this.y = that.y;
+    return this;
   }
 
   setScalar(scalar: number): this {
@@ -304,7 +311,7 @@ const playerFovRange = (player: Player): [Vector2, Vector2] => {
   const p = player.position.clone().add(Vector2.angle(player.direction).scale(NEAR_CLIPPING_PLANE));
   const wing = p.clone().sub(player.position).rot90().norm().scale(l);
   const p1 = p.clone().sub(wing);
-  const p2 = p.clone().add(wing);
+  const p2 = p.add(wing);
   return [p1, p2];
 };
 
@@ -316,7 +323,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   ctx.translate(position.x, position.y);
   ctx.scale(size.x/gridSize.x, size.y/gridSize.y);
 
-  ctx.fillStyle = "#181818";
+  ctx.fillStyle = '#181818';
   ctx.fillRect(0, 0, gridSize.x, gridSize.y);
 
   ctx.lineWidth = 0.1;
@@ -330,7 +337,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
     }
   }
 
-  ctx.strokeStyle = "#303030";
+  ctx.strokeStyle = '#303030';
   for (let x = 0; x <= gridSize.x; ++x) {
     strokeLine(ctx, new Vector2(x, 0), new Vector2(x, gridSize.y));
   }
@@ -338,7 +345,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
     strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
   }
 
-  ctx.fillStyle = "magenta";
+  ctx.fillStyle = 'magenta';
   ctx.fillRect(
     player.position.x - PLAYER_SIZE*0.5,
     player.position.y - PLAYER_SIZE*0.5,
@@ -346,7 +353,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   );
 
   const [p1, p2] = playerFovRange(player);
-  ctx.strokeStyle = "magenta";
+  ctx.strokeStyle = 'magenta';
   strokeLine(ctx, p1, p2);
   strokeLine(ctx, player.position, p1);
   strokeLine(ctx, player.position, p2);
@@ -354,29 +361,27 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, position: 
   ctx.restore();
 };
 
-const renderWalls = (imageData: ImageData, player: Player, scene: Scene) => {
+const renderWalls = (display: Display, player: Player, scene: Scene) => {
   const [r1, r2] = playerFovRange(player);
-  for (let x = 0; x < imageData.width; ++x) {
-    const p = castRay(scene, player.position, r1.clone().lerp(r2, x/imageData.width));
+  for (let x = 0; x < display.backImageData.width; ++x) {
+    const p = castRay(scene, player.position, r1.clone().lerp(r2, x/display.backImageData.width));
     const c = hittingCell(player.position, p);
     const cell = sceneGetTile(scene, c);
+    const v = p.clone().sub(player.position);
+    const d = Vector2.angle(player.direction)
+    display.zBuffer[x] = v.dot(d);
     if (cell instanceof RGBA) {
-      const v = p.clone().sub(player.position);
-      const d = Vector2.angle(player.direction)
-      const stripHeight = imageData.height/v.dot(d);
-      
-      const shadow = 1/v.dot(d)*2;
+      const stripHeight = display.backImageData.height/display.zBuffer[x];
+      const shadow = 1/display.zBuffer[x]*2;
       for (let dy = 0; dy < Math.ceil(stripHeight); ++dy) {
-        const y = Math.floor((imageData.height - stripHeight)*0.5) + dy;
-        const destP = (y*imageData.width + x)*4;
-        imageData.data[destP + 0] = cell.r*shadow*255;
-        imageData.data[destP + 1] = cell.g*shadow*255;
-        imageData.data[destP + 2] = cell.b*shadow*255;
+        const y = Math.floor((display.backImageData.height - stripHeight)*0.5) + dy;
+        const destP = (y*display.backImageData.width + x)*4;
+        display.backImageData.data[destP + 0] = cell.r*shadow*255;
+        display.backImageData.data[destP + 1] = cell.g*shadow*255;
+        display.backImageData.data[destP + 2] = cell.b*shadow*255;
       }
     } else if (cell instanceof ImageData) {
-      const v = p.clone().sub(player.position);
-      const d = Vector2.angle(player.direction)
-      const stripHeight = imageData.height/v.dot(d);
+      const stripHeight = display.backImageData.height/display.zBuffer[x];
 
       let u = 0;
       const t = p.clone().sub(c);
@@ -386,20 +391,20 @@ const renderWalls = (imageData: ImageData, player: Player, scene: Scene) => {
         u = t.x;
       }
 
-      const y1 = Math.floor((imageData.height - stripHeight)*0.5);
+      const y1 = Math.floor((display.backImageData.height - stripHeight)*0.5);
       const y2 = Math.floor(y1 + stripHeight);
       const by1 = Math.max(0, y1);
-      const by2 = Math.min(imageData.height-1, y2);
+      const by2 = Math.min(display.backImageData.height-1, y2);
       const tx = Math.floor(u*cell.width);
       const sh = (1/Math.ceil(stripHeight))*cell.height;
-      const shadow = 1/v.dot(d)*2;
+      const shadow = 1/display.zBuffer[x]*2;
       for (let y = by1; y <= by2; ++y) {
         const ty = Math.floor((y - y1)*sh);
-        const destP = (y*imageData.width + x)*4;
+        const destP = (y*display.backImageData.width + x)*4;
         const srcP = (ty*cell.width + tx)*4;
-        imageData.data[destP + 0] = cell.data[srcP + 0]*shadow;
-        imageData.data[destP + 1] = cell.data[srcP + 1]*shadow;
-        imageData.data[destP + 2] = cell.data[srcP + 2]*shadow;
+        display.backImageData.data[destP + 0] = cell.data[srcP + 0]*shadow;
+        display.backImageData.data[destP + 1] = cell.data[srcP + 1]*shadow;
+        display.backImageData.data[destP + 2] = cell.data[srcP + 2]*shadow;
       }
     }
   }
@@ -429,7 +434,7 @@ const renderCeiling = (imageData: ImageData, player: Player) => {
       }
     }
   }
-}
+};
 
 const renderFloor = (imageData: ImageData, player: Player) => {
   const pz = imageData.height/2;
@@ -455,9 +460,63 @@ const renderFloor = (imageData: ImageData, player: Player) => {
       }
     }
   }
+};
+
+interface Display {
+  ctx: CanvasRenderingContext2D;
+  backCtx: OffscreenCanvasRenderingContext2D;
+  backImageData: ImageData;
+  zBuffer: number[];
 }
 
-export const renderGame = (ctx: CanvasRenderingContext2D, backCtx: OffscreenCanvasRenderingContext2D, backImageData: ImageData, deltaTime: number, player: Player, scene: Scene) => {
+export interface Sprite {
+  imageData: ImageData;
+  position: Vector2;
+}
+
+const clamp = (min: number, max: number, v: number) => {
+  if (v < min) return min;
+  if (v > max) return max;
+  return v;
+};
+
+const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
+  const sp = new Vector2(0, 0);
+  const dir = Vector2.angle(player.direction);
+  const [p1, p2] = playerFovRange(player);
+  for (const sprite of sprites) {
+    sp.copy(sprite.position).sub(player.position);
+    const spl = sp.length();
+    if (spl === 0) continue;
+    const dot = sp.dot(dir)/spl;
+    if (!(HALF_FOV_COS <= dot && dot <= 1.0)) continue;
+    const dist = NEAR_CLIPPING_PLANE/dot;
+    sp.norm().scale(dist).add(player.position);
+    const t = p1.distanceTo(sp)/p1.distanceTo(p2);
+    const cx = Math.floor(display.backImageData.width*t);
+    const cy = Math.floor(display.backImageData.height*0.5);
+
+    const pdist = sprite.position.clone().sub(player.position).dot(dir);
+    const spriteSize = Math.floor(display.backImageData.height/pdist*0.5);
+    const x1 = clamp(0, display.backImageData.width - 1, Math.floor(cx - spriteSize*0.5));
+    const x2 = clamp(0, display.backImageData.width - 1, Math.floor(cx + spriteSize*0.5));
+    const y1 = clamp(0, display.backImageData.height - 1, Math.floor(cy - spriteSize*0.5));
+    const y2 = clamp(0, display.backImageData.height - 1, Math.floor(cy + spriteSize*0.5));
+
+    for (let x = x1; x <= x2; ++x) {
+      if (pdist < display.zBuffer[x]) {
+        for (let y = y1; y <= y2; ++y) {
+          const index = (y*display.backImageData.width + x)*4;
+          display.backImageData.data[index + 0] = 255;
+          display.backImageData.data[index + 1] = 0;
+          display.backImageData.data[index + 2] = 0;
+        }
+      }
+    }
+  }
+};
+
+export const renderGame = (display: Display, deltaTime: number, player: Player, scene: Scene, sprites: Sprite[]) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
@@ -467,10 +526,10 @@ export const renderGame = (ctx: CanvasRenderingContext2D, backCtx: OffscreenCanv
     player.velocity.sub(Vector2.angle(player.direction).scale(PLAYER_SPEED))
   }
   if (player.turningLeft) {
-    angularVelocity -= Math.PI;
+    angularVelocity -= Math.PI*0.75;
   }
   if (player.turningRight) {
-    angularVelocity += Math.PI;
+    angularVelocity += Math.PI*0.75;
   }
   player.direction = player.direction + angularVelocity*deltaTime;
   const nx = player.position.x + player.velocity.x*deltaTime;
@@ -482,20 +541,21 @@ export const renderGame = (ctx: CanvasRenderingContext2D, backCtx: OffscreenCanv
     player.position.y = ny;
   }
 
-  const minimapPosition = canvasSize(ctx).scale(0.03);
-  const cellSize = ctx.canvas.width*0.03;
+  const minimapPosition = canvasSize(display.ctx).scale(0.03);
+  const cellSize = display.ctx.canvas.width*0.03;
   const minimapSize = sceneSize(scene).scale(cellSize);
 
-  backImageData.data.fill(255);
-  renderFloor(backImageData, player);
-  renderCeiling(backImageData, player);
-  renderWalls(backImageData, player, scene);
-  backCtx.putImageData(backImageData, 0, 0);
-  ctx.drawImage(backCtx.canvas, 0, 0, ctx.canvas.width, ctx.canvas.height);
+  display.backImageData.data.fill(255);
+  renderFloor(display.backImageData, player);
+  renderCeiling(display.backImageData, player);
+  renderWalls(display, player, scene);
+  renderSprites(display, player, sprites);
+  display.backCtx.putImageData(display.backImageData, 0, 0);
+  display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
 
-  renderMinimap(ctx, player, minimapPosition, minimapSize, scene);
+  renderMinimap(display.ctx, player, minimapPosition, minimapSize, scene);
 
-  ctx.font = "48px bold"
-  ctx.fillStyle = "white"
-  ctx.fillText(`${Math.floor(1/deltaTime)}`, 100, 100);
-}
+  display.ctx.font = '48px bold';
+  display.ctx.fillStyle = 'white';
+  display.ctx.fillText(`${Math.floor(1/deltaTime)}`, 100, 100);
+};

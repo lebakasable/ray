@@ -25,24 +25,18 @@ const loadImageData = async (url) => {
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
     const [claybricks] = await Promise.all([
-        loadImageData('assets/tiles/bricks/claybricks.png'),
+        loadImageData('assets/images/bricks/claybricks.png').catch(() => game.RGBA.purple()),
     ]);
     let game = await import('./game.js');
     const scene = game.createScene([
-        [claybricks, null, claybricks, null, null, null, null],
-        [null, null, null, null, null, null, null],
-        [claybricks, null, claybricks, null, null, null, null],
-        [null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null],
-        [null, null, null, null, null, null, null],
+        [null, null, claybricks, null, claybricks, null, null, null, null],
+        [null, null, null, null, null, null, null, null, null],
+        [null, null, claybricks, null, claybricks, null, null, null, null],
+        [null, null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null, null],
+        [null, null, null, null, null, null, null, null, null],
     ]);
-    const sprites = [
-        {
-            imageData: claybricks,
-            position: new game.Vector2(1.5, 1.5),
-        },
-    ];
     const player = game.createPlayer(game.sceneSize(scene).scale(0.63), Math.PI * 1.25);
     const isDev = window.location.hostname === 'localhost';
     if (isDev) {
@@ -115,7 +109,7 @@ const loadImageData = async (url) => {
     const frame = (timestamp) => {
         const deltaTime = (timestamp - prevTimestamp) / 1000;
         prevTimestamp = timestamp;
-        game.renderGame(display, deltaTime, player, scene, sprites);
+        game.renderGame(display, deltaTime, player, scene);
         window.requestAnimationFrame(frame);
     };
     window.requestAnimationFrame((timestamp) => {

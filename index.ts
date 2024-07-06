@@ -28,19 +28,26 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   ctx.imageSmoothingEnabled = false;
 
   const [claybricks] = await Promise.all([
-    loadImageData('assets/images/bricks/claybricks.png').catch(() => game.RGBA.purple()),
+    loadImageData('assets/tiles/bricks/claybricks.png'),
   ]);
 
   let game = await import('./game.js');
   const scene = game.createScene([
-    [null, null, claybricks, null, null, null, null, null, null],
-    [null, null, null,       null, null, null, null, null, null],
-    [null, null, null,       null, null, null, null, null, null],
-    [null, null, null,       null, null, null, null, null, null],
-    [null, null, null],
-    [null, null, null,       null, null, null, null, null, null],
-    [null, null, null,       null, null, null, null, null, null],
+    [claybricks, null, claybricks, null, null, null, null],
+    [null,       null, null,       null, null, null, null],
+    [claybricks, null, claybricks, null, null, null, null],
+    [null,       null, null,       null, null, null, null],
+    [null,       null, null,       null, null, null, null],
+    [null,       null, null,       null, null, null, null],
+    [null,       null, null,       null, null, null, null],
   ]);
+
+  const sprites = [
+    {
+      imageData: claybricks,
+      position: new game.Vector2(1.5, 1.5),
+    },
+  ];
 
   const player = game.createPlayer(
     game.sceneSize(scene).scale(0.63),
@@ -65,6 +72,12 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const backCanvas = new OffscreenCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
   const backCtx = backCanvas.getContext('2d')!;
   backCtx.imageSmoothingEnabled = false;
+  const display = {
+    ctx,
+    backCtx,
+    backImageData,
+    zBuffer: Array(SCREEN_WIDTH).fill(0),
+  };
 
   window.addEventListener('keydown', (e) => {
     if (!e.repeat) {
@@ -91,7 +104,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const frame = (timestamp: number) => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
     prevTimestamp = timestamp;
-    game.renderGame(ctx, backCtx, backImageData, deltaTime, player, scene);
+    game.renderGame(display, deltaTime, player, scene, sprites);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {
