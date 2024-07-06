@@ -487,7 +487,7 @@ const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
   for (const sprite of sprites) {
     sp.copy(sprite.position).sub(player.position);
     const spl = sp.length();
-    if (spl === 0) continue;
+    if (spl <= NEAR_CLIPPING_PLANE) continue;
     const dot = sp.dot(dir)/spl;
     if (!(HALF_FOV_COS <= dot && dot <= 1.0)) continue;
     const dist = NEAR_CLIPPING_PLANE/dot;
@@ -497,19 +497,24 @@ const renderSprites = (display: Display, player: Player, sprites: Sprite[]) => {
     const cy = Math.floor(display.backImageData.height*0.5);
 
     const pdist = sprite.position.clone().sub(player.position).dot(dir);
-    const spriteSize = Math.floor(display.backImageData.height/pdist*0.5);
+    const spriteSize = Math.floor(display.backImageData.height/pdist*0.75);
     const x1 = clamp(0, display.backImageData.width - 1, Math.floor(cx - spriteSize*0.5));
     const x2 = clamp(0, display.backImageData.width - 1, Math.floor(cx + spriteSize*0.5));
     const y1 = clamp(0, display.backImageData.height - 1, Math.floor(cy - spriteSize*0.5));
     const y2 = clamp(0, display.backImageData.height - 1, Math.floor(cy + spriteSize*0.5));
 
-    for (let x = x1; x <= x2; ++x) {
+    for (let x = x1; x < x2; ++x) {
       if (pdist < display.zBuffer[x]) {
-        for (let y = y1; y <= y2; ++y) {
-          const index = (y*display.backImageData.width + x)*4;
-          display.backImageData.data[index + 0] = 255;
-          display.backImageData.data[index + 1] = 0;
-          display.backImageData.data[index + 2] = 0;
+        for (let y = y1; y < y2; ++y) {
+          const tx = Math.floor((x - x1)/spriteSize*sprite.imageData.width);
+          const ty = Math.floor((y - y1)/spriteSize*sprite.imageData.height);
+
+          const srcP = (ty*sprite.imageData.width + tx)*4;
+          const destP = (y*display.backImageData.width + x)*4;
+          const alpha = sprite.imageData.data[srcP + 3]/255;
+          display.backImageData.data[destP + 0] = sprite.imageData.data[srcP + 0]*alpha + display.backImageData.data[destP + 0]*(1 - alpha);
+          display.backImageData.data[destP + 1] = sprite.imageData.data[srcP + 1]*alpha + display.backImageData.data[destP + 1]*(1 - alpha);
+          display.backImageData.data[destP + 2] = sprite.imageData.data[srcP + 2]*alpha + display.backImageData.data[destP + 2]*(1 - alpha);
         }
       }
     }

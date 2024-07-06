@@ -24,14 +24,15 @@ const loadImageData = async (url) => {
     gameCanvas.height = 9 * factor;
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    const [claybricks] = await Promise.all([
-        loadImageData('assets/tiles/bricks/claybricks.png'),
+    const [wall, key] = await Promise.all([
+        loadImageData('assets/images/wall.png'),
+        loadImageData('assets/images/key.png'),
     ]);
     let game = await import('./game.js');
     const scene = game.createScene([
-        [claybricks, null, claybricks, null, null, null, null],
+        [wall, null, wall, null, null, null, null],
         [null, null, null, null, null, null, null],
-        [claybricks, null, claybricks, null, null, null, null],
+        [wall, null, wall, null, null, null, null],
         [null, null, null, null, null, null, null],
         [null, null, null, null, null, null, null],
         [null, null, null, null, null, null, null],
@@ -39,7 +40,7 @@ const loadImageData = async (url) => {
     ]);
     const sprites = [
         {
-            imageData: claybricks,
+            imageData: key,
             position: new game.Vector2(1.5, 1.5),
         },
     ];
