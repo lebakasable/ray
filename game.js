@@ -461,7 +461,7 @@ const renderSprites = (display, player, sprites) => {
         const pdist = sprite.position.clone().sub(player.position).dot(dir);
         if (pdist < NEAR_CLIPPING_PLANE)
             continue;
-        const spriteScale = 1.0;
+        const spriteScale = 0.5;
         const spriteSize = display.backImageData.height / pdist * spriteScale;
         const x1 = Math.floor(cx - spriteSize * 0.5);
         const x2 = Math.floor(x1 + spriteSize - 1);
