@@ -34,7 +34,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
 
   let game = await import('./game.js');
   const scene = game.createScene([
-    [wall, null, wall, null, null, null, null],
+    [null, null, wall, null, null, null, null],
     [null, null, null, null, null, null, null],
     [wall, null, wall, null, null, null, null],
     [null, null, null, null, null, null, null],
