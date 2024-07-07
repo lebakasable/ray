@@ -10,6 +10,10 @@ const PLAYER_RADIUS = 0.5;
 const ITEM_FREQ = 1.0;
 const ITEM_AMP = 0.03;
 
+const BOMB_THROW_VELOCITY = 5;
+const BOMB_GRAVITY = 10;
+const BOMB_DAMP = 0.8;
+
 const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
 const MINIMAP_SPRITE_SIZE = 0.3;
@@ -760,9 +764,6 @@ export const allocateBombs = (capacity: number): Bomb[] => {
   return bombs;
 };
 
-const BOMB_THROW_VELOCITY = 5;
-const GRAVITY = new Vector3(0, 0, -10);
-
 export const throwBomb = (player: Player, bombs: Bomb[]) => {
   for (let bomb of bombs) {
     if (bomb.lifetime <= 0) {
@@ -821,13 +822,10 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
   for (const bomb of bombs) {
     if (bomb.lifetime > 0) {
       bomb.lifetime -= deltaTime;
-      bomb.velocity.x += GRAVITY.x*deltaTime;
-      bomb.velocity.y += GRAVITY.y*deltaTime;
-      bomb.velocity.z += GRAVITY.z*deltaTime;
+      bomb.velocity.z -= BOMB_GRAVITY*deltaTime;
 
       const nx = bomb.position.x + bomb.velocity.x*deltaTime;
       const ny = bomb.position.y + bomb.velocity.y*deltaTime;
-      const BOMB_DAMP = 0.8;
       if (sceneIsWall(scene, new Vector2(nx, ny))) {
         const dx = Math.abs(Math.floor(bomb.position.x) - Math.floor(nx));
         const dy = Math.abs(Math.floor(bomb.position.y) - Math.floor(ny));
