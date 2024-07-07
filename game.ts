@@ -3,7 +3,6 @@ const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
 const HALF_FOV_COS = Math.cos(FOV*0.5);
-const PLAYER_STEP_LEN = 0.5;
 const PLAYER_SPEED = 2;
 const PLAYER_RADIUS = 0.5;
 
@@ -13,6 +12,7 @@ const ITEM_AMP = 0.03;
 const BOMB_THROW_VELOCITY = 5;
 const BOMB_GRAVITY = 10;
 const BOMB_DAMP = 0.8;
+const BOMB_SCALE = 0.25;
 
 const MINIMAP = false;
 const MINIMAP_SPRITES = false;
@@ -777,7 +777,7 @@ export const throwBomb = (player: Player, bombs: Bomb[]) => {
   }
 };
 
-export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochet: HTMLAudioElement, itemPickup: HTMLAudioElement) => {
+const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
@@ -801,14 +801,14 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
   if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
     player.position.y = ny;
   }
+}
 
-  spritePool.count = 0;
-
+const updateItems = (spritePool: SpritePool, time: number, player: Player, items: Item[], itemPickupSound: HTMLAudioElement) => {
   for (const item of items) {
     if (item.alive) {
       if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS*PLAYER_RADIUS) {
-        itemPickup.currentTime = 0;
-        itemPickup.play();
+        itemPickupSound.currentTime = 0;
+        itemPickupSound.play();
         item.alive = false;
       }
     }
@@ -817,7 +817,9 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
       pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);
     }
   }
+}
 
+const updateBombs = (spritePool: SpritePool, bombs: Bomb[], scene: Scene, deltaTime: number, bombImageData: ImageData, bombRicochetSound: HTMLAudioElement) => {
   for (const bomb of bombs) {
     if (bomb.lifetime > 0) {
       bomb.lifetime -= deltaTime;
@@ -833,8 +835,8 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
         if (dy > 0) bomb.velocity.y *= -1
         bomb.velocity.scale(BOMB_DAMP);
         if (bomb.velocity.length() > 1) {
-          bombRicochet.currentTime = 0;
-          bombRicochet.play();
+          bombRicochetSound.currentTime = 0;
+          bombRicochetSound.play();
         }
       } else {
         bomb.position.x = nx;
@@ -842,12 +844,12 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
       }
 
       const nz = bomb.position.z + bomb.velocity.z*deltaTime;
-      if (nz < 0.25 || nz > 1.0) {
+      if (nz < BOMB_SCALE || nz > 1.0) {
         bomb.velocity.z *= -1;
         bomb.velocity.scale(BOMB_DAMP);
         if (bomb.velocity.length()>1) {
-          bombRicochet.currentTime = 0;
-          bombRicochet.play();
+          bombRicochetSound.currentTime = 0;
+          bombRicochetSound.play();
         }
       } else {
         bomb.position.z = nz;
@@ -856,10 +858,18 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
       if (bomb.lifetime <= 0) {
 
       } else {
-        pushSprite(spritePool, bombImageData, bomb.position.clone2(), bomb.position.z, 0.25);
+        pushSprite(spritePool, bombImageData, bomb.position.clone2(), bomb.position.z, BOMB_SCALE);
       }
     }
   }
+}
+
+export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochetSound: HTMLAudioElement, itemPickupSound: HTMLAudioElement) => {
+  spritePool.count = 0;
+
+  updatePlayer(player, scene, deltaTime);
+  updateItems(spritePool, time, player, items, itemPickupSound);
+  updateBombs(spritePool, bombs, scene, deltaTime, bombImageData, bombRicochetSound);
 
   renderFloorAndCeiling(display.backImageData, player);
   renderWalls(display, player, scene);
