@@ -96,7 +96,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
         console.log('Hot reloading module');
         game = await import('./game.js?date='+new Date().getTime());
       } else if (event.data === 'cold') {
-        window.location.reload()
+        window.location.reload();
       }
     });
   }

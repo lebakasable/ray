@@ -57,7 +57,7 @@ export class Vector2 {
   }
 
   clone(): Vector2 {
-    return new Vector2(this.x, this.y)
+    return new Vector2(this.x, this.y);
   }
 
   copy(that: Vector2): this {
@@ -157,11 +157,11 @@ export class Vector3 {
   ) {}
 
   clone(): Vector3 {
-    return new Vector3(this.x, this.y, this.z)
+    return new Vector3(this.x, this.y, this.z);
   }
 
   clone2(): Vector2 {
-    return new Vector2(this.x, this.y)
+    return new Vector2(this.x, this.y);
   }
 
   copy(that: Vector3): this {
@@ -495,7 +495,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
         sprite.position.x - MINIMAP_SPRITE_SIZE*0.5,
         sprite.position.y - MINIMAP_SPRITE_SIZE*0.5,
         MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE,
-      )
+      );
 
       sp.copy(sprite.position).sub(player.position);
       strokeLine(ctx, player.position, player.position.clone().add(sp));
@@ -534,7 +534,7 @@ const renderFPS = (ctx: CanvasRenderingContext2D, deltaTime: number) => {
 
 const renderWalls = (display: Display, player: Player, scene: Scene) => {
   const [r1, r2] = playerFovRange(player);
-  const d = new Vector2().setAngle(player.direction)
+  const d = new Vector2().setAngle(player.direction);
   for (let x = 0; x < display.backImageData.width; ++x) {
     const p = castRay(scene, player.position, r1.clone().lerp(r2, x/display.backImageData.width));
     const c = hittingCell(player.position, p);
@@ -781,10 +781,10 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
-    player.velocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED))
+    player.velocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED));
   }
   if (player.movingBackward) {
-    player.velocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED))
+    player.velocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED));
   }
   if (player.turningLeft) {
     angularVelocity -= Math.PI*0.75;
@@ -801,7 +801,7 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
     player.position.y = ny;
   }
-}
+};
 
 const updateItems = (spritePool: SpritePool, time: number, player: Player, items: Item[], itemPickupSound: HTMLAudioElement) => {
   for (const item of items) {
@@ -817,7 +817,7 @@ const updateItems = (spritePool: SpritePool, time: number, player: Player, items
       pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);
     }
   }
-}
+};
 
 const updateBombs = (spritePool: SpritePool, bombs: Bomb[], scene: Scene, deltaTime: number, bombImageData: ImageData, bombRicochetSound: HTMLAudioElement) => {
   for (const bomb of bombs) {
@@ -831,8 +831,8 @@ const updateBombs = (spritePool: SpritePool, bombs: Bomb[], scene: Scene, deltaT
         const dx = Math.abs(Math.floor(bomb.position.x) - Math.floor(nx));
         const dy = Math.abs(Math.floor(bomb.position.y) - Math.floor(ny));
 
-        if (dx > 0) bomb.velocity.x *= -1
-        if (dy > 0) bomb.velocity.y *= -1
+        if (dx > 0) bomb.velocity.x *= -1;
+        if (dy > 0) bomb.velocity.y *= -1;
         bomb.velocity.scale(BOMB_DAMP);
         if (bomb.velocity.length() > 1) {
           bombRicochetSound.currentTime = 0;
@@ -862,7 +862,7 @@ const updateBombs = (spritePool: SpritePool, bombs: Bomb[], scene: Scene, deltaT
       }
     }
   }
-}
+};
 
 export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, spritePool: SpritePool, items: Item[], bombs: Bomb[], bombImageData: ImageData, bombRicochetSound: HTMLAudioElement, itemPickupSound: HTMLAudioElement) => {
   spritePool.count = 0;
