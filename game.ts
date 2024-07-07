@@ -14,6 +14,7 @@ const BOMB_THROW_VELOCITY = 5;
 const BOMB_GRAVITY = 10;
 const BOMB_DAMP = 0.8;
 
+const MINIMAP = false;
 const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
 const MINIMAP_SPRITE_SIZE = 0.3;
@@ -436,7 +437,7 @@ const playerFovRange = (player: Player): [Vector2, Vector2] => {
   return [p1, p2];
 };
 
-const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, spritePool: SpritePool, scene: Scene) => {
+const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene, spritePool: SpritePool) => {
   ctx.save();
 
   const cellSize = ctx.canvas.width*MINIMAP_SCALE;
@@ -486,6 +487,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, spritePool
     const sp = new Vector2();
     const dir = new Vector2().setAngle(player.direction);
     strokeLine(ctx, player.position, player.position.clone().add(dir));
+    ctx.fillStyle = 'white';
     for (let i = 0; i < spritePool.count; ++i) {
       const sprite = spritePool.sprites[i];
 
@@ -501,9 +503,6 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, spritePool
       if (spl <= NEAR_CLIPPING_PLANE) continue;
       if (spl >= FAR_CLIPPING_PLANE) continue;
       const dot = sp.dot(dir)/spl;
-      ctx.fillStyle = 'white';
-      ctx.font = '0.5px bold';
-      ctx.fillText(`${dot}`, player.position.x, player.position.y);
       if (!(HALF_FOV_COS <= dot)) continue;
       const dist = NEAR_CLIPPING_PLANE/dot;
       sp.norm().scale(dist).add(player.position);
@@ -867,6 +866,6 @@ export const renderGame = (display: Display, deltaTime: number, time: number, pl
   renderSprites(display, player, spritePool);
   displaySwapBackImageData(display);
 
-  // renderMinimap(display.ctx, player, spritePool, scene);
+  if (MINIMAP) renderMinimap(display.ctx, player, scene, spritePool);
   renderFPS(display.ctx, deltaTime);
 };
