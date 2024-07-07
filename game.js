@@ -727,6 +727,7 @@ const updateBombs = (bombs, scene, deltaTime, bombImageData, bombRicochetSound) 
     }
 };
 export const renderGame = (display, deltaTime, time, player, scene, items, bombs, bombImageData, bombRicochetSound, itemPickupSound) => {
+    const begin = performance.now();
     poolReset(spritePool);
     poolReset(v2Pool);
     poolReset(v3Pool);
@@ -737,8 +738,9 @@ export const renderGame = (display, deltaTime, time, player, scene, items, bombs
     renderWalls(display, player, scene);
     renderSprites(display, player);
     displaySwapBackImageData(display);
+    const end = performance.now();
     if (MINIMAP)
         renderMinimap(display.ctx, player, scene);
-    renderFPS(display.ctx, deltaTime);
+    renderFPS(display.ctx, (end - begin) / 1000);
 };
 //# sourceMappingURL=game.js.map
