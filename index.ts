@@ -47,7 +47,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   ]);
 
   const player = game.createPlayer(
-    game.sceneSize(scene).scale(0.63),
+    new game.Vector2(scene.width, scene.height).scale(0.63),
     Math.PI*1.25,
   );
 
