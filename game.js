@@ -658,6 +658,7 @@ export const renderGame = (display, deltaTime, time, player, scene, spritePool, 
     if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
         player.position.y = ny;
     }
+    spritePool.count = 0;
     for (const item of items) {
         if (item.alive) {
             if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS * PLAYER_RADIUS) {
@@ -666,12 +667,16 @@ export const renderGame = (display, deltaTime, time, player, scene, spritePool, 
                 item.alive = false;
             }
         }
+        if (item.alive) {
+            pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
+        }
     }
-    spritePool.count = 0;
     for (const bomb of bombs) {
         if (bomb.lifetime > 0) {
             bomb.lifetime -= deltaTime;
-            bomb.velocity.x += GRAVITY.z * deltaTime;
+            bomb.velocity.x += GRAVITY.x * deltaTime;
+            bomb.velocity.y += GRAVITY.y * deltaTime;
+            bomb.velocity.z += GRAVITY.z * deltaTime;
             const nx = bomb.position.x + bomb.velocity.x * deltaTime;
             const ny = bomb.position.y + bomb.velocity.y * deltaTime;
             const BOMB_DAMP = 0.8;
@@ -709,11 +714,6 @@ export const renderGame = (display, deltaTime, time, player, scene, spritePool, 
             else {
                 pushSprite(spritePool, bombImageData, bomb.position.clone2(), bomb.position.z, 0.25);
             }
-        }
-    }
-    for (const item of items) {
-        if (item.alive) {
-            pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
         }
     }
     renderFloorAndCeiling(display.backImageData, player);
