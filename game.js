@@ -16,9 +16,9 @@ const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
 const MINIMAP_SPRITE_SIZE = 0.3;
 const MINIMAP_SCALE = 0.03;
-const createPool = (init) => ({
+const createPool = (init = {}) => ({
     items: [],
-    init,
+    init: init,
     length: 0,
 });
 const poolAlloc = (pool) => {
@@ -388,7 +388,7 @@ const playerFovRange = (player) => {
     const p2 = p.add(wing);
     return [p1, p2];
 };
-const renderMinimap = (ctx, player, scene, spritePool) => {
+const renderMinimap = (ctx, player, scene) => {
     ctx.save();
     const cellSize = ctx.canvas.width * MINIMAP_SCALE;
     const gridSize = sceneSize(scene);
@@ -427,8 +427,8 @@ const renderMinimap = (ctx, player, scene, spritePool) => {
         const dir = poolAlloc(v2Pool).setAngle(player.direction);
         strokeLine(ctx, player.position, player.position.clonePool(v2Pool).add(dir));
         ctx.fillStyle = 'white';
-        for (let i = 0; i < spritePool.count; ++i) {
-            const sprite = spritePool.sprites[i];
+        for (let i = 0; i < spritePool.length; ++i) {
+            const sprite = spritePool.items[i];
             ctx.fillRect(sprite.position.x - MINIMAP_SPRITE_SIZE * 0.5, sprite.position.y - MINIMAP_SPRITE_SIZE * 0.5, MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE);
             sp.copy(sprite.position).sub(player.position);
             strokeLine(ctx, player.position, player.position.clonePool(v2Pool).add(sp));
@@ -550,14 +550,15 @@ const displaySwapBackImageData = (display) => {
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
 };
+const spritePool = createPool();
 const visibleSprites = [];
-const renderSprites = (display, player, spritePool) => {
+const renderSprites = (display, player) => {
     const sp = poolAlloc(v2Pool);
     const dir = poolAlloc(v2Pool).setAngle(player.direction);
     const [p1, p2] = playerFovRange(player);
     visibleSprites.length = 0;
-    for (let i = 0; i < spritePool.count; ++i) {
-        const sprite = spritePool.sprites[i];
+    for (let i = 0; i < spritePool.length; ++i) {
+        const sprite = spritePool.items[i];
         sp.copy(sprite.position).sub(player.position);
         const spl = sp.length();
         if (spl <= NEAR_CLIPPING_PLANE)
@@ -609,29 +610,15 @@ const renderSprites = (display, player, spritePool) => {
         }
     }
 };
-const pushSprite = (spritePool, imageData, position, z, scale) => {
-    if (spritePool.sprites.length <= spritePool.count) {
-        spritePool.sprites.push({
-            imageData,
-            position,
-            z,
-            scale,
-            pdist: 0,
-            t: 0,
-        });
-    }
-    else {
-        spritePool.sprites[spritePool.count].imageData = imageData;
-        spritePool.sprites[spritePool.count].position = position;
-        spritePool.sprites[spritePool.count].z = z;
-        spritePool.sprites[spritePool.count].scale = scale;
-    }
-    spritePool.count += 1;
+const pushSprite = (imageData, position, z, scale) => {
+    const sprite = poolAlloc(spritePool);
+    sprite.imageData = imageData;
+    sprite.position = position;
+    sprite.z = z;
+    sprite.scale = scale;
+    sprite.pdist = 0;
+    sprite.t = 0;
 };
-export const createSpritePool = () => ({
-    sprites: [],
-    count: 0,
-});
 export const allocateBombs = (capacity) => {
     const bombs = [];
     for (let i = 0; i < capacity; ++i) {
@@ -681,7 +668,7 @@ const updatePlayer = (player, scene, deltaTime) => {
         player.position.y = ny;
     }
 };
-const updateItems = (spritePool, time, player, items, itemPickupSound) => {
+const updateItems = (time, player, items, itemPickupSound) => {
     for (const item of items) {
         if (item.alive) {
             if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS * PLAYER_RADIUS) {
@@ -691,11 +678,11 @@ const updateItems = (spritePool, time, player, items, itemPickupSound) => {
             }
         }
         if (item.alive) {
-            pushSprite(spritePool, item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
+            pushSprite(item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
         }
     }
 };
-const updateBombs = (spritePool, bombs, scene, deltaTime, bombImageData, bombRicochetSound) => {
+const updateBombs = (bombs, scene, deltaTime, bombImageData, bombRicochetSound) => {
     for (const bomb of bombs) {
         if (bomb.lifetime > 0) {
             bomb.lifetime -= deltaTime;
@@ -734,24 +721,24 @@ const updateBombs = (spritePool, bombs, scene, deltaTime, bombImageData, bombRic
             if (bomb.lifetime <= 0) {
             }
             else {
-                pushSprite(spritePool, bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
+                pushSprite(bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
             }
         }
     }
 };
-export const renderGame = (display, deltaTime, time, player, scene, spritePool, items, bombs, bombImageData, bombRicochetSound, itemPickupSound) => {
-    spritePool.count = 0;
+export const renderGame = (display, deltaTime, time, player, scene, items, bombs, bombImageData, bombRicochetSound, itemPickupSound) => {
+    poolReset(spritePool);
     poolReset(v2Pool);
     poolReset(v3Pool);
     updatePlayer(player, scene, deltaTime);
-    updateItems(spritePool, time, player, items, itemPickupSound);
-    updateBombs(spritePool, bombs, scene, deltaTime, bombImageData, bombRicochetSound);
+    updateItems(time, player, items, itemPickupSound);
+    updateBombs(bombs, scene, deltaTime, bombImageData, bombRicochetSound);
     renderFloorAndCeiling(display.backImageData, player);
     renderWalls(display, player, scene);
-    renderSprites(display, player, spritePool);
+    renderSprites(display, player);
     displaySwapBackImageData(display);
     if (MINIMAP)
-        renderMinimap(display.ctx, player, scene, spritePool);
+        renderMinimap(display.ctx, player, scene);
     renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map

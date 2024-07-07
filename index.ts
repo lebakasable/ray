@@ -51,7 +51,6 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     Math.PI*1.25,
   );
 
-  const spritePool = game.createSpritePool();
   const items = [
     {
       alive: true,
@@ -143,7 +142,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
     const time = timestamp/1000;
     prevTimestamp = timestamp;
-    game.renderGame(display, deltaTime, time, player, scene, spritePool, items, bombs, bomb, bombRicochet, itemPickup);
+    game.renderGame(display, deltaTime, time, player, scene, items, bombs, bomb, bombRicochet, itemPickup);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {
