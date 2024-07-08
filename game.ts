@@ -86,10 +86,6 @@ export class Vector2 {
     return this;
   }
 
-  clonePool(pool: Pool<Vector2>): Vector2 {
-    return poolAlloc(pool).copy(this);
-  }
-
   clone(): Vector2 {
     return new Vector2(this.x, this.y);
   }
@@ -303,9 +299,6 @@ export class Vector3 {
   }
 }
 
-const v2Pool: Pool<Vector2> = createPool(new Vector2());
-const v3Pool: Pool<Vector3> = createPool(new Vector3());
-
 const strokeLine = (ctx: CanvasRenderingContext2D, p1: Vector2, p2: Vector2) => {
   ctx.beginPath();
   ctx.moveTo(p1.x, p1.y);
@@ -322,7 +315,7 @@ const snap = (x: number, dx: number): number => {
 const hittingCell = (p1: Vector2, p2: Vector2): Vector2 => {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
-  return poolAlloc(v2Pool).set(
+  return new Vector2(
     Math.floor(p2.x + Math.sign(dx)*EPS),
     Math.floor(p2.y + Math.sign(dy)*EPS),
   );
@@ -339,13 +332,13 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
     {
       const x3 = snap(p2.x, dx);
       const y3 = x3*k + c;
-      p3 = poolAlloc(v2Pool).set(x3, y3);
+      p3 = new Vector2(x3, y3);
     }
 
     if (k !== 0) {
       const y3 = snap(p2.y, dy);
       const x3 = (y3 - c)/k;
-      const p3t = poolAlloc(v2Pool).set(x3, y3);
+      const p3t = new Vector2(x3, y3);
       if (p2.sqrDistanceTo(p3t) < p2.sqrDistanceTo(p3)) {
         p3 = p3t;
       }
@@ -353,7 +346,7 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
   } else {
     const y3 = snap(p2.y, dy);
     const x3 = p2.x;
-    p3 = poolAlloc(v2Pool).set(x3, y3);
+    p3 = new Vector2(x3, y3);
   }
 
   return p3;
@@ -391,7 +384,7 @@ export const createScene = (walls: Array<Array<Tile>>): Scene => {
 };
 
 const sceneSize = (scene: Scene): Vector2 => {
-  return poolAlloc(v2Pool).set(scene.width, scene.height);
+  return new Vector2(scene.width, scene.height);
 };
 
 const sceneContains = (scene: Scene, p: Vector2): boolean =>
@@ -430,7 +423,7 @@ const sceneCanRectangleFitHere = (scene: Scene, px: number, py: number, sx: numb
   const y2 = Math.floor(py + sy*0.5);
   for (let x = x1; x <= x2; ++x) {
     for (let y = y1; y <= y2; ++y) {
-      if (sceneIsWall(scene, poolAlloc(v2Pool).set(x, y))) {
+      if (sceneIsWall(scene, new Vector2(x, y))) {
         return false;
       }
     }
@@ -473,9 +466,9 @@ export const createPlayer = (position: Vector2, direction: number): Player =>
 
 const playerFovRange = (player: Player): [Vector2, Vector2] => {
   const l = Math.tan(FOV*0.5)*NEAR_CLIPPING_PLANE;
-  const p = poolAlloc(v2Pool).setAngle(player.direction, NEAR_CLIPPING_PLANE).add(player.position);
-  const wing = p.clonePool(v2Pool).sub(player.position).rot90().norm().scale(l);
-  const p1 = p.clonePool(v2Pool).sub(wing);
+  const p = new Vector2().setAngle(player.direction, NEAR_CLIPPING_PLANE).add(player.position);
+  const wing = p.clone().sub(player.position).rot90().norm().scale(l);
+  const p1 = p.clone().sub(wing);
   const p2 = p.add(wing);
   return [p1, p2];
 };
@@ -495,7 +488,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
   ctx.lineWidth = 0.1;
   for (let y = 0; y < gridSize.y; ++y) {
     for (let x = 0; x < gridSize.x; ++x) {
-      const cell = sceneGetTile(scene, poolAlloc(v2Pool).set(x, y));
+      const cell = sceneGetTile(scene, new Vector2(x, y));
       if (cell instanceof RGBA) {
         ctx.fillStyle = cell.toString();
         ctx.fillRect(x, y, 1, 1);
@@ -505,10 +498,10 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
 
   ctx.strokeStyle = '#303030';
   for (let x = 0; x <= gridSize.x; ++x) {
-    strokeLine(ctx, poolAlloc(v2Pool).set(x, 0), poolAlloc(v2Pool).set(x, gridSize.y));
+    strokeLine(ctx, new Vector2(x, 0), new Vector2(x, gridSize.y));
   }
   for (let y = 0; y <= gridSize.y; ++y) {
-    strokeLine(ctx, poolAlloc(v2Pool).set(0, y), poolAlloc(v2Pool).set(gridSize.x, y));
+    strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
   }
 
   ctx.fillStyle = 'magenta';
@@ -527,9 +520,9 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
   if (MINIMAP_SPRITES) {
     ctx.fillStyle = 'red';
     ctx.strokeStyle = 'yellow';
-    const sp = poolAlloc(v2Pool);
-    const dir = poolAlloc(v2Pool).setAngle(player.direction);
-    strokeLine(ctx, player.position, player.position.clonePool(v2Pool).add(dir));
+    const sp = new Vector2();
+    const dir = new Vector2().setAngle(player.direction);
+    strokeLine(ctx, player.position, player.position.clone().add(dir));
     ctx.fillStyle = 'white';
     for (let i = 0; i < spritePool.length; ++i) {
       const sprite = spritePool.items[i];
@@ -541,7 +534,7 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
       );
 
       sp.copy(sprite.position).sub(player.position);
-      strokeLine(ctx, player.position, player.position.clonePool(v2Pool).add(sp));
+      strokeLine(ctx, player.position, player.position.clone().add(sp));
       const spl = sp.length();
       if (spl <= NEAR_CLIPPING_PLANE) continue;
       if (spl >= FAR_CLIPPING_PLANE) continue;
@@ -577,12 +570,12 @@ const renderFPS = (ctx: CanvasRenderingContext2D, deltaTime: number) => {
 
 const renderWalls = (display: Display, player: Player, scene: Scene) => {
   const [r1, r2] = playerFovRange(player);
-  const d = poolAlloc(v2Pool).setAngle(player.direction);
+  const d = new Vector2().setAngle(player.direction);
   for (let x = 0; x < display.backImageData.width; ++x) {
-    const p = castRay(scene, player.position, r1.clonePool(v2Pool).lerp(r2, x/display.backImageData.width));
+    const p = castRay(scene, player.position, r1.clone().lerp(r2, x/display.backImageData.width));
     const c = hittingCell(player.position, p);
     const cell = sceneGetTile(scene, c);
-    const v = p.clonePool(v2Pool).sub(player.position);
+    const v = p.clone().sub(player.position);
     display.zBuffer[x] = v.dot(d);
     if (cell instanceof RGBA) {
       const stripHeight = display.backImageData.height/display.zBuffer[x];
@@ -598,7 +591,7 @@ const renderWalls = (display: Display, player: Player, scene: Scene) => {
       const stripHeight = display.backImageData.height/display.zBuffer[x];
 
       let u = 0;
-      const t = p.clonePool(v2Pool).sub(c);
+      const t = p.clone().sub(c);
       if (Math.abs(t.x) < EPS && t.y > 0) {
         u = t.y;
       } else if (Math.abs(t.x - 1) < EPS && t.y > 0) {
@@ -631,9 +624,9 @@ const renderWalls = (display: Display, player: Player, scene: Scene) => {
 const renderFloorAndCeiling = (imageData: ImageData, player: Player) => {
   const pz = imageData.height/2;
   const [p1, p2] = playerFovRange(player);
-  const t = poolAlloc(v2Pool);
-  const t1 = poolAlloc(v2Pool);
-  const t2 = poolAlloc(v2Pool);
+  const t = new Vector2();
+  const t1 = new Vector2();
+  const t2 = new Vector2();
   const bp = t1.copy(p1).sub(player.position).length();
   for (let y = Math.floor(imageData.height/2); y < imageData.height; ++y) {
     const sz = imageData.height - y - 1;
@@ -691,8 +684,8 @@ const spritePool: Pool<Sprite> = createPool();
 
 const visibleSprites: Sprite[] = [];
 const renderSprites = (display: Display, player: Player) => {
-  const sp = poolAlloc(v2Pool);
-  const dir = poolAlloc(v2Pool).setAngle(player.direction);
+  const sp = new Vector2();
+  const dir = new Vector2().setAngle(player.direction);
   const [p1, p2] = playerFovRange(player);
 
   visibleSprites.length = 0;
@@ -709,7 +702,7 @@ const renderSprites = (display: Display, player: Player) => {
     const dist = NEAR_CLIPPING_PLANE/dot;
     sp.norm().scale(dist).add(player.position);
     sprite.t = p1.distanceTo(sp)/p1.distanceTo(p2);
-    sprite.pdist = sprite.position.clonePool(v2Pool).sub(player.position).dot(dir);
+    sprite.pdist = sprite.position.clone().sub(player.position).dot(dir);
 
     if (sprite.pdist < NEAR_CLIPPING_PLANE) continue;
     if (sprite.pdist >= FAR_CLIPPING_PLANE) continue;
@@ -807,10 +800,10 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   player.velocity.setScalar(0);
   let angularVelocity = 0.0;
   if (player.movingForward) {
-    player.velocity.add(poolAlloc(v2Pool).setAngle(player.direction, PLAYER_SPEED));
+    player.velocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED));
   }
   if (player.movingBackward) {
-    player.velocity.sub(poolAlloc(v2Pool).setAngle(player.direction, PLAYER_SPEED));
+    player.velocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED));
   }
   if (player.turningLeft) {
     angularVelocity -= Math.PI*0.75;
@@ -877,7 +870,7 @@ const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number,
 
       const nx = particle.position.x + particle.velocity.x*deltaTime;
       const ny = particle.position.y + particle.velocity.y*deltaTime;
-      if (sceneIsWall(scene, poolAlloc(v2Pool).set(nx, ny))) {
+      if (sceneIsWall(scene, new Vector2(nx, ny))) {
         const dx = Math.abs(Math.floor(particle.position.x) - Math.floor(nx));
         const dy = Math.abs(Math.floor(particle.position.y) - Math.floor(ny));
 
@@ -898,7 +891,7 @@ const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number,
       }
 
       if (particle.lifetime > 0) {
-        pushSprite(assets.particleImageData, poolAlloc(v2Pool).set(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+        pushSprite(assets.particleImageData, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
       }
     }
   }
@@ -937,7 +930,7 @@ const updateBombs = (player: Player, bombs: Bomb[], particles: Particle[], scene
 
       const nx = bomb.position.x + bomb.velocity.x*deltaTime;
       const ny = bomb.position.y + bomb.velocity.y*deltaTime;
-      if (sceneIsWall(scene, poolAlloc(v2Pool).set(nx, ny))) {
+      if (sceneIsWall(scene, new Vector2(nx, ny))) {
         const dx = Math.abs(Math.floor(bomb.position.x) - Math.floor(nx));
         const dy = Math.abs(Math.floor(bomb.position.y) - Math.floor(ny));
 
@@ -969,7 +962,7 @@ const updateBombs = (player: Player, bombs: Bomb[], particles: Particle[], scene
           emitParticle(bomb.position, particles);
         }
       } else {
-        pushSprite(assets.bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
+        pushSprite(assets.bombImageData, new Vector2(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
       }
     }
   }
@@ -986,8 +979,6 @@ export interface Assets {
 
 export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, items: Item[], bombs: Bomb[], particles: Particle[], assets: Assets) => {
   poolReset(spritePool);
-  poolReset(v2Pool);
-  poolReset(v3Pool);
 
   updatePlayer(player, scene, deltaTime);
   updateItems(time, player, items, assets);
