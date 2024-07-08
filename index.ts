@@ -27,13 +27,15 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const ctx = gameCanvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
-  const [wall, key, bomb] = await Promise.all([
+  const [wall, key, bomb, particle] = await Promise.all([
     loadImageData('assets/images/wall.png'),
     loadImageData('assets/images/key.png'),
     loadImageData('assets/images/bomb.png'),
+    loadImageData('assets/images/particle.png'),
   ]);
   const itemPickup = new Audio('assets/sounds/pickup.ogg');
   const bombRicochet = new Audio('assets/sounds/ricochet.wav');
+  const bombBlast = new Audio('assets/sounds/blast.ogg');
 
   let game = await import('./game.js');
   const scene = game.createScene([
@@ -85,6 +87,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   ];
 
   const bombs = game.allocateBombs(10);
+  const particles = game.allocateParticles(1000);
 
   const isDev = window.location.hostname === 'localhost';
   if (isDev) {
@@ -142,7 +145,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     const deltaTime = (timestamp - prevTimestamp)/1000;
     const time = timestamp/1000;
     prevTimestamp = timestamp;
-    game.renderGame(display, deltaTime, time, player, scene, items, bombs, bomb, bombRicochet, itemPickup);
+    game.renderGame(display, deltaTime, time, player, scene, items, bombs, particles, bomb, particle, bombRicochet, bombBlast, itemPickup);
     window.requestAnimationFrame(frame);
   }
   window.requestAnimationFrame((timestamp) => {

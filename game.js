@@ -7,10 +7,17 @@ const PLAYER_SPEED = 2;
 const PLAYER_RADIUS = 0.5;
 const ITEM_FREQ = 1.0;
 const ITEM_AMP = 0.03;
+const BOMB_LIFETIME = 2;
 const BOMB_THROW_VELOCITY = 5;
 const BOMB_GRAVITY = 10;
 const BOMB_DAMP = 0.8;
 const BOMB_SCALE = 0.25;
+const BOMB_PARTICLE_COUNT = 30;
+const PARTICLE_LIFETIME = 1.0;
+const PARTICLE_GRAVITY = 10;
+const PARTICLE_DAMP = 0.8;
+const PARTICLE_SCALE = 0.1;
+const PARTICLE_MAX_SPEED = 8;
 const MINIMAP = false;
 const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
@@ -633,7 +640,7 @@ export const allocateBombs = (capacity) => {
 export const throwBomb = (player, bombs) => {
     for (let bomb of bombs) {
         if (bomb.lifetime <= 0) {
-            bomb.lifetime = 5.0;
+            bomb.lifetime = BOMB_LIFETIME;
             bomb.position.copy2(player.position, 0.6);
             bomb.velocity.x = Math.cos(player.direction);
             bomb.velocity.y = Math.sin(player.direction);
@@ -682,7 +689,68 @@ const updateItems = (time, player, items, itemPickupSound) => {
         }
     }
 };
-const updateBombs = (bombs, scene, deltaTime, bombImageData, bombRicochetSound) => {
+export const allocateParticles = (capacity) => {
+    const particles = [];
+    for (let i = 0; i < capacity; ++i) {
+        particles.push({
+            position: new Vector3(),
+            velocity: new Vector3(),
+            lifetime: 0,
+        });
+    }
+    return particles;
+};
+const updateParticles = (particles, scene, deltaTime, particleImageData) => {
+    for (const particle of particles) {
+        if (particle.lifetime > 0) {
+            particle.lifetime -= deltaTime;
+            particle.velocity.z -= PARTICLE_GRAVITY * deltaTime;
+            const nx = particle.position.x + particle.velocity.x * deltaTime;
+            const ny = particle.position.y + particle.velocity.y * deltaTime;
+            if (sceneIsWall(scene, poolAlloc(v2Pool).set(nx, ny))) {
+                const dx = Math.abs(Math.floor(particle.position.x) - Math.floor(nx));
+                const dy = Math.abs(Math.floor(particle.position.y) - Math.floor(ny));
+                if (dx > 0)
+                    particle.velocity.x *= -1;
+                if (dy > 0)
+                    particle.velocity.y *= -1;
+                particle.velocity.scale(PARTICLE_DAMP);
+            }
+            else {
+                particle.position.x = nx;
+                particle.position.y = ny;
+            }
+            const nz = particle.position.z + particle.velocity.z * deltaTime;
+            if (nz < PARTICLE_SCALE || nz > 1.0) {
+                particle.velocity.z *= -1;
+                particle.velocity.scale(PARTICLE_DAMP);
+            }
+            else {
+                particle.position.z = nz;
+            }
+            if (particle.lifetime <= 0) {
+            }
+            else {
+                pushSprite(particleImageData, poolAlloc(v2Pool).set(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+            }
+        }
+    }
+};
+export const emitParticle = (source, particles) => {
+    for (let particle of particles) {
+        if (particle.lifetime <= 0) {
+            particle.lifetime = PARTICLE_LIFETIME;
+            particle.position.copy(source);
+            const angle = Math.random() * 2 * Math.PI;
+            particle.velocity.x = Math.cos(angle);
+            particle.velocity.y = Math.sin(angle);
+            particle.velocity.z = Math.random();
+            particle.velocity.scale(PARTICLE_MAX_SPEED * Math.random());
+            break;
+        }
+    }
+};
+const updateBombs = (bombs, particles, scene, deltaTime, bombImageData, bombRicochetSound, bombBlastSound) => {
     for (const bomb of bombs) {
         if (bomb.lifetime > 0) {
             bomb.lifetime -= deltaTime;
@@ -719,6 +787,11 @@ const updateBombs = (bombs, scene, deltaTime, bombImageData, bombRicochetSound) 
                 bomb.position.z = nz;
             }
             if (bomb.lifetime <= 0) {
+                bombBlastSound.currentTime = 0;
+                bombBlastSound.play();
+                for (let i = 0; i < BOMB_PARTICLE_COUNT; ++i) {
+                    emitParticle(bomb.position, particles);
+                }
             }
             else {
                 pushSprite(bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
@@ -726,13 +799,14 @@ const updateBombs = (bombs, scene, deltaTime, bombImageData, bombRicochetSound) 
         }
     }
 };
-export const renderGame = (display, deltaTime, time, player, scene, items, bombs, bombImageData, bombRicochetSound, itemPickupSound) => {
+export const renderGame = (display, deltaTime, time, player, scene, items, bombs, particles, bombImageData, particleImageData, bombRicochetSound, bombBlastSound, itemPickupSound) => {
     poolReset(spritePool);
     poolReset(v2Pool);
     poolReset(v3Pool);
     updatePlayer(player, scene, deltaTime);
     updateItems(time, player, items, itemPickupSound);
-    updateBombs(bombs, scene, deltaTime, bombImageData, bombRicochetSound);
+    updateBombs(bombs, particles, scene, deltaTime, bombImageData, bombRicochetSound, bombBlastSound);
+    updateParticles(particles, scene, deltaTime, particleImageData);
     renderFloorAndCeiling(display.backImageData, player);
     renderWalls(display, player, scene);
     renderSprites(display, player);
