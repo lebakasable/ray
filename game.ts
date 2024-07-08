@@ -827,12 +827,12 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   }
 };
 
-const updateItems = (time: number, player: Player, items: Item[], itemPickupSound: HTMLAudioElement) => {
+const updateItems = (time: number, player: Player, items: Item[], assets: Assets) => {
   for (const item of items) {
     if (item.alive) {
       if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS*PLAYER_RADIUS) {
-        itemPickupSound.currentTime = 0;
-        itemPickupSound.play();
+        assets.itemPickupSound.currentTime = 0;
+        assets.itemPickupSound.play();
         item.alive = false;
       }
     }
@@ -861,7 +861,7 @@ export const allocateParticles = (capacity: number): Particle[] => {
   return particles;
 };
 
-const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number, particleImageData: ImageData) => {
+const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number, assets: Assets) => {
   for (const particle of particles) {
     if (particle.lifetime > 0) {
       particle.lifetime -= deltaTime;
@@ -889,9 +889,8 @@ const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number,
         particle.position.z = nz;
       }
 
-      if (particle.lifetime <= 0) {
-      } else {
-        pushSprite(particleImageData, poolAlloc(v2Pool).set(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+      if (particle.lifetime > 0) {
+        pushSprite(assets.particleImageData, poolAlloc(v2Pool).set(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
       }
     }
   }
@@ -912,7 +911,7 @@ export const emitParticle = (source: Vector3, particles: Particle[]) => {
   }
 };
 
-const updateBombs = (bombs: Bomb[], particles: Particle[], scene: Scene, deltaTime: number, bombImageData: ImageData, bombRicochetSound: HTMLAudioElement, bombBlastSound: HTMLAudioElement) => {
+const updateBombs = (bombs: Bomb[], particles: Particle[], scene: Scene, deltaTime: number, assets: Assets) => {
   for (const bomb of bombs) {
     if (bomb.lifetime > 0) {
       bomb.lifetime -= deltaTime;
@@ -928,8 +927,8 @@ const updateBombs = (bombs: Bomb[], particles: Particle[], scene: Scene, deltaTi
         if (dy > 0) bomb.velocity.y *= -1;
         bomb.velocity.scale(BOMB_DAMP);
         if (bomb.velocity.length() > 1) {
-          bombRicochetSound.currentTime = 0;
-          bombRicochetSound.play();
+          assets.bombRicochetSound.currentTime = 0;
+          assets.bombRicochetSound.play();
         }
       } else {
         bomb.position.x = nx;
@@ -941,35 +940,43 @@ const updateBombs = (bombs: Bomb[], particles: Particle[], scene: Scene, deltaTi
         bomb.velocity.z *= -1;
         bomb.velocity.scale(BOMB_DAMP);
         if (bomb.velocity.length() > 1) {
-          bombRicochetSound.currentTime = 0;
-          bombRicochetSound.play();
+          assets.bombRicochetSound.currentTime = 0;
+          assets.bombRicochetSound.play();
         }
       } else {
         bomb.position.z = nz;
       }
 
       if (bomb.lifetime <= 0) {
-        bombBlastSound.currentTime = 0;
-        bombBlastSound.play();
+        assets.bombBlastSound.currentTime = 0;
+        assets.bombBlastSound.play();
         for (let i = 0; i < BOMB_PARTICLE_COUNT; ++i) {
           emitParticle(bomb.position, particles);
         }
       } else {
-        pushSprite(bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
+        pushSprite(assets.bombImageData, poolAlloc(v2Pool).set(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
       }
     }
   }
 };
 
-export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, items: Item[], bombs: Bomb[], particles: Particle[], bombImageData: ImageData, particleImageData: ImageData, bombRicochetSound: HTMLAudioElement, bombBlastSound: HTMLAudioElement, itemPickupSound: HTMLAudioElement) => {
+export interface Assets {
+  bombImageData: ImageData;
+  particleImageData: ImageData;
+  bombRicochetSound: HTMLAudioElement;
+  itemPickupSound: HTMLAudioElement;
+  bombBlastSound: HTMLAudioElement;
+};
+
+export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, items: Item[], bombs: Bomb[], particles: Particle[], assets: Assets) => {
   poolReset(spritePool);
   poolReset(v2Pool);
   poolReset(v3Pool);
 
   updatePlayer(player, scene, deltaTime);
-  updateItems(time, player, items, itemPickupSound);
-  updateBombs(bombs, particles, scene, deltaTime, bombImageData, bombRicochetSound, bombBlastSound);
-  updateParticles(particles, scene, deltaTime, particleImageData);
+  updateItems(time, player, items, assets);
+  updateBombs(bombs, particles, scene, deltaTime, assets);
+  updateParticles(particles, scene, deltaTime, assets);
 
   renderFloorAndCeiling(display.backImageData, player);
   renderWalls(display, player, scene);
