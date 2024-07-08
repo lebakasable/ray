@@ -685,7 +685,7 @@ const updateItems = (time, player, items, assets) => {
     for (const item of items) {
         if (item.alive) {
             if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS * PLAYER_RADIUS) {
-                playSound(assets.itemPickupSound);
+                playSound(assets.itemPickupSound, player.position, item.position);
                 item.alive = false;
             }
         }
@@ -756,13 +756,8 @@ export const emitParticle = (source, particles) => {
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const playSound = (sound, playerPosition, objectPosition) => {
     const maxVolume = 1;
-    if (playerPosition && objectPosition) {
-        const distanceToPlayer = new Vector2(objectPosition.x, objectPosition.y).distanceTo(playerPosition);
-        sound.volume = clamp(maxVolume / distanceToPlayer, 0.0, 1.0);
-    }
-    else {
-        sound.volume = maxVolume;
-    }
+    const distanceToPlayer = objectPosition.distanceTo(playerPosition);
+    sound.volume = clamp(maxVolume / distanceToPlayer, 0.0, 1.0);
     sound.currentTime = 0;
     sound.play();
 };
@@ -782,7 +777,7 @@ const updateBombs = (player, bombs, particles, scene, deltaTime, assets) => {
                     bomb.velocity.y *= -1;
                 bomb.velocity.scale(BOMB_DAMP);
                 if (bomb.velocity.length() > 1) {
-                    playSound(assets.bombRicochetSound, player.position, bomb.position);
+                    playSound(assets.bombRicochetSound, player.position, bomb.position.clone2());
                 }
             }
             else {
@@ -794,14 +789,14 @@ const updateBombs = (player, bombs, particles, scene, deltaTime, assets) => {
                 bomb.velocity.z *= -1;
                 bomb.velocity.scale(BOMB_DAMP);
                 if (bomb.velocity.length() > 1) {
-                    playSound(assets.bombRicochetSound, player.position, bomb.position);
+                    playSound(assets.bombRicochetSound, player.position, bomb.position.clone2());
                 }
             }
             else {
                 bomb.position.z = nz;
             }
             if (bomb.lifetime <= 0) {
-                playSound(assets.bombBlastSound, player.position, bomb.position);
+                playSound(assets.bombBlastSound, player.position, bomb.position.clone2());
                 for (let i = 0; i < BOMB_PARTICLE_COUNT; ++i) {
                     emitParticle(bomb.position, particles);
                 }
