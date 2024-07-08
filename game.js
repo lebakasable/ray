@@ -368,7 +368,7 @@ const castRay = (scene, p1, p2) => {
 };
 export const createPlayer = (position, direction) => ({
     position: position,
-    velocity: new Vector2(),
+    controlVelocity: new Vector2(),
     fovLeft: new Vector2(),
     fovRight: new Vector2(),
     direction: direction,
@@ -646,13 +646,13 @@ export const throwBomb = (player, bombs) => {
     }
 };
 const updatePlayer = (player, scene, deltaTime) => {
-    player.velocity.setScalar(0);
+    player.controlVelocity.setScalar(0);
     let angularVelocity = 0.0;
     if (player.movingForward) {
-        player.velocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED));
+        player.controlVelocity.add(new Vector2().setAngle(player.direction, PLAYER_SPEED));
     }
     if (player.movingBackward) {
-        player.velocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED));
+        player.controlVelocity.sub(new Vector2().setAngle(player.direction, PLAYER_SPEED));
     }
     if (player.turningLeft) {
         angularVelocity -= Math.PI * 0.75;
@@ -661,11 +661,11 @@ const updatePlayer = (player, scene, deltaTime) => {
         angularVelocity += Math.PI * 0.75;
     }
     player.direction = player.direction + angularVelocity * deltaTime;
-    const nx = player.position.x + player.velocity.x * deltaTime;
+    const nx = player.position.x + player.controlVelocity.x * deltaTime;
     if (sceneCanRectangleFitHere(scene, nx, player.position.y, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
         player.position.x = nx;
     }
-    const ny = player.position.y + player.velocity.y * deltaTime;
+    const ny = player.position.y + player.controlVelocity.y * deltaTime;
     if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
         player.position.y = ny;
     }
