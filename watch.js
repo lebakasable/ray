@@ -1,6 +1,6 @@
 const { spawn } = require('child_process');
 const { WebSocketServer } = require('ws');
-const { watch } = require('fs');
+const { watchFile } = require('fs');
 const path = require('path');
 
 const cmd = (program, args) => {
@@ -36,14 +36,14 @@ wss.on('connection', (ws) => {
 
 const COLD_RELOAD_FILES = ['index.html', 'index.js'];
 COLD_RELOAD_FILES.forEach((file) =>
-  watch(path.join(__dirname, file), { interval: 50 }, () => {
+  watchFile(path.join(__dirname, file), { interval: 50 }, () => {
     websockets.forEach((socket) => socket.send('cold'));
   })
 );
 
 const HOT_RELOAD_FILES = ['game.js'];
 HOT_RELOAD_FILES.forEach((file) =>
-  watch(path.join(__dirname, file), { interval: 50 }, () => {
+  watchFile(path.join(__dirname, file), { interval: 50 }, () => {
     websockets.forEach((socket) => socket.send('hot'));
   })
 );
