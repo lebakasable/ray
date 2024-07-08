@@ -28,27 +28,18 @@ const MINIMAP_PLAYER_SIZE = 0.5;
 const MINIMAP_SPRITE_SIZE = 0.3;
 const MINIMAP_SCALE = 0.03;
 
-interface Pool<T> {
-  items: T[];
-  init: T,
+interface SpritePool {
+  items: Sprite[];
   length: number;
 }
 
-const createPool = <T>(init: Partial<T> = {}): Pool<T> =>
+const createSpritePool = (): SpritePool =>
   ({
     items: [],
-    init: init as T,
     length: 0,
   });
 
-const poolAlloc = <T>(pool: Pool<T>): T => {
-  if (pool.length >= pool.items.length) {
-    pool.items.push(Object.assign(Object.create(Object.getPrototypeOf(pool.init)), pool.init));
-  }
-  return pool.items[pool.length++];
-};
-
-const poolReset = <T>(pool: Pool<T>) => pool.length = 0;
+const spritePoolReset = (spritePool: SpritePool) => spritePool.length = 0;
 
 export class RGBA {
   constructor(
@@ -680,7 +671,7 @@ export interface Sprite {
   t: number;
 }
 
-const spritePool: Pool<Sprite> = createPool();
+const spritePool = createSpritePool();
 
 const visibleSprites: Sprite[] = [];
 const renderSprites = (display: Display, player: Player) => {
@@ -747,13 +738,24 @@ const renderSprites = (display: Display, player: Player) => {
 };
 
 const pushSprite = (imageData: ImageData, position: Vector2, z: number, scale: number) => {
-  const sprite = poolAlloc(spritePool);
-  sprite.imageData = imageData;
-  sprite.position = position;
-  sprite.z = z;
-  sprite.scale = scale;
-  sprite.pdist = 0;
-  sprite.t = 0;
+  if (spritePool.length >= spritePool.items.length) {
+    spritePool.items.push({
+      imageData,
+      position,
+      z,
+      scale,
+      pdist: 0,
+      t: 0,
+    });
+  } else {
+    spritePool.items[spritePool.length].imageData = imageData;
+    spritePool.items[spritePool.length].position = position;
+    spritePool.items[spritePool.length].z = z;
+    spritePool.items[spritePool.length].scale = scale;
+    spritePool.items[spritePool.length].pdist = 0;
+    spritePool.items[spritePool.length].t = 0;
+    spritePool.length += 1;
+  }
 };
 
 export type ItemKind = 'key' | 'bomb';
@@ -978,7 +980,7 @@ export interface Assets {
 };
 
 export const renderGame = (display: Display, deltaTime: number, time: number, player: Player, scene: Scene, items: Item[], bombs: Bomb[], particles: Particle[], assets: Assets) => {
-  poolReset(spritePool);
+  spritePoolReset(spritePool);
 
   updatePlayer(player, scene, deltaTime);
   updateItems(time, player, items, assets);
