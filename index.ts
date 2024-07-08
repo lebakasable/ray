@@ -1,3 +1,5 @@
+type Item = import('./game.js').Item;
+
 const SCREEN_FACTOR = 30;
 const SCREEN_WIDTH = Math.floor(16*SCREEN_FACTOR);
 const SCREEN_HEIGHT = Math.floor(9*SCREEN_FACTOR);
@@ -27,7 +29,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const ctx = gameCanvas.getContext('2d')!;
   ctx.imageSmoothingEnabled = false;
 
-  const [wall, key, bombImageData, particleImageData] = await Promise.all([
+  const [wall, keyImageData, bombImageData, particleImageData] = await Promise.all([
     loadImageData('assets/images/wall.png'),
     loadImageData('assets/images/key.png'),
     loadImageData('assets/images/bomb.png'),
@@ -37,6 +39,7 @@ const loadImageData = async (url: string): Promise<ImageData> => {
   const bombRicochetSound = new Audio('assets/sounds/ricochet.wav');
   const bombBlastSound = new Audio('assets/sounds/blast.ogg');
   const assets = {
+    keyImageData,
     bombImageData,
     particleImageData,
     bombRicochetSound,
@@ -60,35 +63,35 @@ const loadImageData = async (url: string): Promise<ImageData> => {
     Math.PI*1.25,
   );
 
-  const items = [
+  const items: Item[] = [
     {
+      kind: 'bomb',
       alive: true,
-      imageData: bombImageData,
       position: new game.Vector2(1.5, 2.5),
     },
     {
+      kind: 'key',
       alive: true,
-      imageData: key,
       position: new game.Vector2(2.5, 1.5),
     },
     {
+      kind: 'key',
       alive: true,
-      imageData: key,
       position: new game.Vector2(3, 1.5),
     },
     {
+      kind: 'key',
       alive: true,
-      imageData: key,
       position: new game.Vector2(3.5, 1.5),
     },
     {
+      kind: 'key',
       alive: true,
-      imageData: key,
       position: new game.Vector2(4, 1.5),
     },
     {
+      kind: 'key',
       alive: true,
-      imageData: key,
       position: new game.Vector2(4.5, 1.5),
     },
   ];

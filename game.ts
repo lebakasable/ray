@@ -6,8 +6,8 @@ const HALF_FOV_COS = Math.cos(FOV*0.5);
 const PLAYER_SPEED = 2;
 const PLAYER_RADIUS = 0.5;
 
-const ITEM_FREQ = 1.0;
-const ITEM_AMP = 0.03;
+const ITEM_FREQ = 0.7;
+const ITEM_AMP = 0.07;
 
 const BOMB_LIFETIME = 2;
 const BOMB_THROW_VELOCITY = 5;
@@ -763,9 +763,11 @@ const pushSprite = (imageData: ImageData, position: Vector2, z: number, scale: n
   sprite.t = 0;
 };
 
-interface Item {
+export type ItemKind = 'key' | 'bomb';
+
+export interface Item {
+  kind: ItemKind;
   alive: boolean;
-  imageData: ImageData;
   position: Vector2;
 }
 
@@ -827,6 +829,13 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   }
 };
 
+const spriteOfItemKind = (itemKind: ItemKind, assets: Assets): ImageData => {
+  switch (itemKind) {
+    case 'key': return assets.keyImageData;
+    case 'bomb': return assets.bombImageData;
+  }
+};
+
 const updateItems = (time: number, player: Player, items: Item[], assets: Assets) => {
   for (const item of items) {
     if (item.alive) {
@@ -838,7 +847,7 @@ const updateItems = (time: number, player: Player, items: Item[], assets: Assets
     }
 
     if (item.alive) {
-      pushSprite(item.imageData, item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);
+      pushSprite(spriteOfItemKind(item.kind, assets), item.position, 0.25 + ITEM_AMP - ITEM_AMP*Math.sin(ITEM_FREQ*Math.PI*time + item.position.x + item.position.y),  0.25);
     }
   }
 };
@@ -961,6 +970,7 @@ const updateBombs = (bombs: Bomb[], particles: Particle[], scene: Scene, deltaTi
 };
 
 export interface Assets {
+  keyImageData: ImageData;
   bombImageData: ImageData;
   particleImageData: ImageData;
   bombRicochetSound: HTMLAudioElement;
