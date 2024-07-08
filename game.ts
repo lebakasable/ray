@@ -459,12 +459,6 @@ export const createPlayer = (position: Vector2, direction: number): Player =>
     turningRight: false,
   });
 
-const playerComputeFov = (player: Player) => {
-  const l = NEAR_CLIPPING_PLANE/Math.cos(FOV*0.5);
-  player.fovLeft.setAngle(player.direction - FOV*0.5, l).add(player.position);
-  player.fovRight.setAngle(player.direction + FOV*0.5, l).add(player.position);
-};
-
 const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene) => {
   ctx.save();
 
@@ -819,7 +813,11 @@ const updatePlayer = (player: Player, scene: Scene, deltaTime: number) => {
   if (sceneCanRectangleFitHere(scene, player.position.x, ny, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE)) {
     player.position.y = ny;
   }
-  playerComputeFov(player);
+
+  const halfFov = FOV*0.5;
+  const fovLen = NEAR_CLIPPING_PLANE/Math.cos(halfFov);
+  player.fovLeft.setAngle(player.direction - halfFov, fovLen).add(player.position);
+  player.fovRight.setAngle(player.direction + halfFov, fovLen).add(player.position);
 };
 
 const spriteOfItemKind = (itemKind: ItemKind, assets: Assets): ImageData => {
