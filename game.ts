@@ -72,7 +72,7 @@ const hittingCell = (p1: Vector2, p2: Vector2): Vector2 => {
 };
 
 const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
-  let p3 = p2;
+  let p3 = p2.clone();
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   if (dx !== 0) {
@@ -82,7 +82,7 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
     {
       const x3 = snap(p2.x, dx);
       const y3 = x3*k + c;
-      p3 = new Vector2(x3, y3);
+      p3.set(x3, y3);
     }
 
     if (k !== 0) {
@@ -90,13 +90,13 @@ const rayStep = (p1: Vector2, p2: Vector2): Vector2 => {
       const x3 = (y3 - c)/k;
       const p3t = new Vector2(x3, y3);
       if (p2.sqrDistanceTo(p3t) < p2.sqrDistanceTo(p3)) {
-        p3 = p3t;
+        p3.copy(p3t);
       }
     }
   } else {
     const y3 = snap(p2.y, dy);
     const x3 = p2.x;
-    p3 = new Vector2(x3, y3);
+    p3.set(x3, y3);
   }
 
   return p3;
@@ -126,10 +126,6 @@ const createScene = (walls: Array<Array<Tile>>): Scene => {
     }
   }
   return scene;
-};
-
-const sceneSize = (scene: Scene): Vector2 => {
-  return new Vector2(scene.width, scene.height);
 };
 
 const sceneContains = (scene: Scene, p: Vector2): boolean =>
@@ -216,19 +212,21 @@ const createPlayer = (position: Vector2, direction: number): Player =>
 const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Scene, spritePool: SpritePool, visibleSprites: Sprite[]) => {
   ctx.save();
 
+  const p1 = new Vector2();
+  const p2 = new Vector2();
+
   const cellSize = ctx.canvas.width*MINIMAP_SCALE;
-  const gridSize = sceneSize(scene);
 
   ctx.translate(ctx.canvas.width*0.03, ctx.canvas.height*0.03);
   ctx.scale(cellSize, cellSize);
 
   ctx.fillStyle = '#181818';
-  ctx.fillRect(0, 0, gridSize.x, gridSize.y);
+  ctx.fillRect(0, 0, scene.width, scene.height);
 
   ctx.lineWidth = 0.1;
-  for (let y = 0; y < gridSize.y; ++y) {
-    for (let x = 0; x < gridSize.x; ++x) {
-      const cell = sceneGetTile(scene, new Vector2(x, y));
+  for (let y = 0; y < scene.height; ++y) {
+    for (let x = 0; x < scene.width; ++x) {
+      const cell = sceneGetTile(scene, p1.set(x, y));
       if (cell instanceof RGBA) {
         ctx.fillStyle = cell.toString();
         ctx.fillRect(x, y, 1, 1);
@@ -237,11 +235,11 @@ const renderMinimap = (ctx: CanvasRenderingContext2D, player: Player, scene: Sce
   }
 
   ctx.strokeStyle = '#303030';
-  for (let x = 0; x <= gridSize.x; ++x) {
-    strokeLine(ctx, new Vector2(x, 0), new Vector2(x, gridSize.y));
+  for (let x = 0; x <= scene.width; ++x) {
+    strokeLine(ctx, p1.set(x, 0), p2.set(x, scene.height));
   }
-  for (let y = 0; y <= gridSize.y; ++y) {
-    strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
+  for (let y = 0; y <= scene.height; ++y) {
+    strokeLine(ctx, p1.set(0, y), p2.set(scene.width, y));
   }
 
   ctx.fillStyle = 'magenta';

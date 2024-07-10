@@ -53,7 +53,7 @@ const hittingCell = (p1, p2) => {
     return new Vector2(Math.floor(p2.x + Math.sign(dx) * EPS), Math.floor(p2.y + Math.sign(dy) * EPS));
 };
 const rayStep = (p1, p2) => {
-    let p3 = p2;
+    let p3 = p2.clone();
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
     if (dx !== 0) {
@@ -62,21 +62,21 @@ const rayStep = (p1, p2) => {
         {
             const x3 = snap(p2.x, dx);
             const y3 = x3 * k + c;
-            p3 = new Vector2(x3, y3);
+            p3.set(x3, y3);
         }
         if (k !== 0) {
             const y3 = snap(p2.y, dy);
             const x3 = (y3 - c) / k;
             const p3t = new Vector2(x3, y3);
             if (p2.sqrDistanceTo(p3t) < p2.sqrDistanceTo(p3)) {
-                p3 = p3t;
+                p3.copy(p3t);
             }
         }
     }
     else {
         const y3 = snap(p2.y, dy);
         const x3 = p2.x;
-        p3 = new Vector2(x3, y3);
+        p3.set(x3, y3);
     }
     return p3;
 };
@@ -96,9 +96,6 @@ const createScene = (walls) => {
         }
     }
     return scene;
-};
-const sceneSize = (scene) => {
-    return new Vector2(scene.width, scene.height);
 };
 const sceneContains = (scene, p) => 0 <= p.x && p.x < scene.width && 0 <= p.y && p.y < scene.height;
 const sceneGetTile = (scene, p) => {
@@ -165,16 +162,17 @@ const createPlayer = (position, direction) => ({
 });
 const renderMinimap = (ctx, player, scene, spritePool, visibleSprites) => {
     ctx.save();
+    const p1 = new Vector2();
+    const p2 = new Vector2();
     const cellSize = ctx.canvas.width * MINIMAP_SCALE;
-    const gridSize = sceneSize(scene);
     ctx.translate(ctx.canvas.width * 0.03, ctx.canvas.height * 0.03);
     ctx.scale(cellSize, cellSize);
     ctx.fillStyle = '#181818';
-    ctx.fillRect(0, 0, gridSize.x, gridSize.y);
+    ctx.fillRect(0, 0, scene.width, scene.height);
     ctx.lineWidth = 0.1;
-    for (let y = 0; y < gridSize.y; ++y) {
-        for (let x = 0; x < gridSize.x; ++x) {
-            const cell = sceneGetTile(scene, new Vector2(x, y));
+    for (let y = 0; y < scene.height; ++y) {
+        for (let x = 0; x < scene.width; ++x) {
+            const cell = sceneGetTile(scene, p1.set(x, y));
             if (cell instanceof RGBA) {
                 ctx.fillStyle = cell.toString();
                 ctx.fillRect(x, y, 1, 1);
@@ -182,11 +180,11 @@ const renderMinimap = (ctx, player, scene, spritePool, visibleSprites) => {
         }
     }
     ctx.strokeStyle = '#303030';
-    for (let x = 0; x <= gridSize.x; ++x) {
-        strokeLine(ctx, new Vector2(x, 0), new Vector2(x, gridSize.y));
+    for (let x = 0; x <= scene.width; ++x) {
+        strokeLine(ctx, p1.set(x, 0), p2.set(x, scene.height));
     }
-    for (let y = 0; y <= gridSize.y; ++y) {
-        strokeLine(ctx, new Vector2(0, y), new Vector2(gridSize.x, y));
+    for (let y = 0; y <= scene.height; ++y) {
+        strokeLine(ctx, p1.set(0, y), p2.set(scene.width, y));
     }
     ctx.fillStyle = 'magenta';
     ctx.fillRect(player.position.x - MINIMAP_PLAYER_SIZE * 0.5, player.position.y - MINIMAP_PLAYER_SIZE * 0.5, MINIMAP_PLAYER_SIZE, MINIMAP_PLAYER_SIZE);
