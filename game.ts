@@ -49,13 +49,6 @@ export class RGBA {
     public a: number,
   ) {}
 
-  static red():    RGBA { return new RGBA(1, 0, 0, 1); }
-  static green():  RGBA { return new RGBA(0, 1, 0, 1); }
-  static blue():   RGBA { return new RGBA(0, 0, 1, 1); }
-  static yellow(): RGBA { return new RGBA(1, 1, 0, 1); }
-  static purple(): RGBA { return new RGBA(1, 0, 1, 1); }
-  static cyan():   RGBA { return new RGBA(0, 1, 1, 1); }
-
   toString(): string {
     return `rgba(`
       +`${Math.floor(this.r*255)}, `
