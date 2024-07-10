@@ -528,8 +528,8 @@ const pushSprite = (image: ImageData | RGBA, position: Vector2, z: number, scale
     spritePool.items[spritePool.length].scale = scale;
     spritePool.items[spritePool.length].pdist = 0;
     spritePool.items[spritePool.length].t = 0;
-    spritePool.length += 1;
   }
+  spritePool.length += 1;
 };
 
 type ItemKind = 'key' | 'bomb';
