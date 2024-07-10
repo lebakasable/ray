@@ -24,11 +24,10 @@ const loadImageData = async (url) => {
     gameCanvas.height = 9 * factor;
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    const [wall, keyImageData, bombImageData, particleImageData] = await Promise.all([
+    const [wall, keyImageData, bombImageData] = await Promise.all([
         loadImageData('assets/images/wall.png'),
         loadImageData('assets/images/key.png'),
         loadImageData('assets/images/bomb.png'),
-        loadImageData('assets/images/particle.png'),
     ]);
     const itemPickupSound = new Audio('assets/sounds/pickup.ogg');
     const bombRicochetSound = new Audio('assets/sounds/ricochet.wav');
@@ -36,7 +35,6 @@ const loadImageData = async (url) => {
     const assets = {
         keyImageData,
         bombImageData,
-        particleImageData,
         bombRicochetSound,
         itemPickupSound,
         bombBlastSound,

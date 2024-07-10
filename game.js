@@ -1,3 +1,22 @@
+export class RGBA {
+    r;
+    g;
+    b;
+    a;
+    constructor(r, g, b, a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
+    toString() {
+        return `rgba(`
+            + `${Math.floor(this.r * 255)}, `
+            + `${Math.floor(this.g * 255)}, `
+            + `${Math.floor(this.b * 255)}, `
+            + `${this.a})`;
+    }
+}
 const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
@@ -18,6 +37,7 @@ const PARTICLE_GRAVITY = 10;
 const PARTICLE_DAMP = 0.8;
 const PARTICLE_SCALE = 0.1;
 const PARTICLE_MAX_SPEED = 8;
+const PARTICLE_COLOR = new RGBA(1, 0.5, 0.15, 1);
 const MINIMAP = false;
 const MINIMAP_SPRITES = false;
 const MINIMAP_PLAYER_SIZE = 0.5;
@@ -28,25 +48,6 @@ const createSpritePool = () => ({
     length: 0,
 });
 const spritePoolReset = (spritePool) => spritePool.length = 0;
-export class RGBA {
-    r;
-    g;
-    b;
-    a;
-    constructor(r, g, b, a) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = a;
-    }
-    toString() {
-        return `rgba(`
-            + `${Math.floor(this.r * 255)}, `
-            + `${Math.floor(this.g * 255)}, `
-            + `${Math.floor(this.b * 255)}, `
-            + `${this.a})`;
-    }
-}
 export class Vector2 {
     x;
     y;
@@ -738,7 +739,7 @@ const updateParticles = (particles, scene, deltaTime, assets) => {
                 particle.position.z = nz;
             }
             if (particle.lifetime > 0) {
-                pushSprite(assets.particleImageData, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+                pushSprite(PARTICLE_COLOR, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
             }
         }
     }

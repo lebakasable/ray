@@ -1,3 +1,20 @@
+export class RGBA {
+  constructor(
+    public r: number,
+    public g: number,
+    public b: number,
+    public a: number,
+  ) {}
+
+  toString(): string {
+    return `rgba(`
+      +`${Math.floor(this.r*255)}, `
+      +`${Math.floor(this.g*255)}, `
+      +`${Math.floor(this.b*255)}, `
+      +`${this.a})`;
+  }
+}
+
 const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
@@ -21,6 +38,7 @@ const PARTICLE_GRAVITY = 10;
 const PARTICLE_DAMP = 0.8;
 const PARTICLE_SCALE = 0.1;
 const PARTICLE_MAX_SPEED = 8;
+const PARTICLE_COLOR = new RGBA(1, 0.5, 0.15, 1);
 
 const MINIMAP = false;
 const MINIMAP_SPRITES = false;
@@ -40,23 +58,6 @@ const createSpritePool = (): SpritePool =>
   });
 
 const spritePoolReset = (spritePool: SpritePool) => spritePool.length = 0;
-
-export class RGBA {
-  constructor(
-    public r: number,
-    public g: number,
-    public b: number,
-    public a: number,
-  ) {}
-
-  toString(): string {
-    return `rgba(`
-      +`${Math.floor(this.r*255)}, `
-      +`${Math.floor(this.g*255)}, `
-      +`${Math.floor(this.b*255)}, `
-      +`${this.a})`;
-  }
-}
 
 export class Vector2 {
   constructor(
@@ -897,7 +898,7 @@ const updateParticles = (particles: Particle[], scene: Scene, deltaTime: number,
       }
 
       if (particle.lifetime > 0) {
-        pushSprite(assets.particleImageData, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+        pushSprite(PARTICLE_COLOR, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
       }
     }
   }
@@ -977,7 +978,6 @@ const updateBombs = (player: Player, bombs: Bomb[], particles: Particle[], scene
 export interface Assets {
   keyImageData: ImageData;
   bombImageData: ImageData;
-  particleImageData: ImageData;
   bombRicochetSound: HTMLAudioElement;
   itemPickupSound: HTMLAudioElement;
   bombBlastSound: HTMLAudioElement;
