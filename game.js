@@ -24,10 +24,10 @@ const PARTICLE_DAMP = 0.8;
 const PARTICLE_SCALE = 0.1;
 const PARTICLE_MAX_SPEED = 8;
 const PARTICLE_COLOR = new RGBA(1, 0.5, 0.15, 1);
-const MINIMAP = false;
-const MINIMAP_SPRITES = false;
+const MINIMAP = true;
+const MINIMAP_SPRITES = true;
 const MINIMAP_PLAYER_SIZE = 0.5;
-const MINIMAP_SPRITE_SIZE = 0.3;
+const MINIMAP_SPRITE_SIZE = 0.2;
 const MINIMAP_SCALE = 0.03;
 const createSpritePool = () => ({
     items: [],
@@ -163,7 +163,7 @@ const createPlayer = (position, direction) => ({
     turningLeft: false,
     turningRight: false,
 });
-const renderMinimap = (ctx, player, scene) => {
+const renderMinimap = (ctx, player, scene, spritePool, visibleSprites) => {
     ctx.save();
     const cellSize = ctx.canvas.width * MINIMAP_SCALE;
     const gridSize = sceneSize(scene);
@@ -195,27 +195,16 @@ const renderMinimap = (ctx, player, scene) => {
     strokeLine(ctx, player.position, player.fovLeft);
     strokeLine(ctx, player.position, player.fovRight);
     if (MINIMAP_SPRITES) {
-        ctx.fillStyle = 'red';
         ctx.strokeStyle = 'yellow';
-        const sp = new Vector2();
-        const dir = new Vector2().setPolar(player.direction);
-        strokeLine(ctx, player.position, player.position.clone().add(dir));
         ctx.fillStyle = 'white';
         for (let i = 0; i < spritePool.length; ++i) {
             const sprite = spritePool.items[i];
             ctx.fillRect(sprite.position.x - MINIMAP_SPRITE_SIZE * 0.5, sprite.position.y - MINIMAP_SPRITE_SIZE * 0.5, MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE);
-            sp.copy(sprite.position).sub(player.position);
-            strokeLine(ctx, player.position, player.position.clone().add(sp));
-            const spl = sp.length();
-            if (spl <= NEAR_CLIPPING_PLANE)
-                continue;
-            if (spl >= FAR_CLIPPING_PLANE)
-                continue;
-            const dot = sp.dot(dir) / spl;
-            if (!(HALF_FOV_COS <= dot))
-                continue;
-            const dist = NEAR_CLIPPING_PLANE / dot;
-            sp.norm().scale(dist).add(player.position);
+        }
+        const sp = new Vector2();
+        for (let sprite of visibleSprites) {
+            strokeLine(ctx, player.position, sprite.position);
+            sp.copy(sprite.position).sub(player.position).norm().scale(sprite.dist).add(player.position);
             ctx.fillRect(sp.x - MINIMAP_SPRITE_SIZE * 0.5, sp.y - MINIMAP_SPRITE_SIZE * 0.5, MINIMAP_SPRITE_SIZE, MINIMAP_SPRITE_SIZE);
         }
     }
@@ -335,9 +324,7 @@ const displaySwapBackImageData = (display) => {
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
 };
-const spritePool = createSpritePool();
-const visibleSprites = [];
-const renderSprites = (display, player) => {
+const cullSprites = (player, spritePool, visibleSprites) => {
     const sp = new Vector2();
     const dir = new Vector2().setPolar(player.direction);
     visibleSprites.length = 0;
@@ -352,8 +339,8 @@ const renderSprites = (display, player) => {
         const dot = sp.dot(dir) / spl;
         if (!(HALF_FOV_COS <= dot))
             continue;
-        const dist = NEAR_CLIPPING_PLANE / dot;
-        sp.norm().scale(dist).add(player.position);
+        sprite.dist = NEAR_CLIPPING_PLANE / dot;
+        sp.norm().scale(sprite.dist).add(player.position);
         sprite.t = player.fovLeft.distanceTo(sp) / player.fovLeft.distanceTo(player.fovRight);
         sprite.pdist = sprite.position.clone().sub(player.position).dot(dir);
         if (sprite.pdist < NEAR_CLIPPING_PLANE)
@@ -363,7 +350,9 @@ const renderSprites = (display, player) => {
         visibleSprites.push(sprite);
     }
     visibleSprites.sort((a, b) => b.pdist - a.pdist);
-    for (const sprite of visibleSprites) {
+};
+const renderSprites = (display, sprites) => {
+    for (const sprite of sprites) {
         const cx = display.backImageData.width * sprite.t;
         const cy = display.backImageData.height * 0.5;
         const maxSpriteSize = display.backImageData.height / sprite.pdist;
@@ -410,13 +399,14 @@ const renderSprites = (display, player) => {
         }
     }
 };
-const pushSprite = (image, position, z, scale) => {
+const pushSprite = (spritePool, image, position, z, scale) => {
     if (spritePool.length >= spritePool.items.length) {
         spritePool.items.push({
             image,
             position: position.clone(),
             z,
             scale,
+            dist: 0,
             pdist: 0,
             t: 0,
         });
@@ -426,6 +416,7 @@ const pushSprite = (image, position, z, scale) => {
         spritePool.items[spritePool.length].position.copy(position);
         spritePool.items[spritePool.length].z = z;
         spritePool.items[spritePool.length].scale = scale;
+        spritePool.items[spritePool.length].dist = 0;
         spritePool.items[spritePool.length].pdist = 0;
         spritePool.items[spritePool.length].t = 0;
     }
@@ -490,7 +481,7 @@ const spriteOfItemKind = (itemKind, assets) => {
         case 'bomb': return assets.bombImageData;
     }
 };
-const updateItems = (time, player, items, assets) => {
+const updateItems = (spritePool, time, player, items, assets) => {
     for (const item of items) {
         if (item.alive) {
             if (player.position.sqrDistanceTo(item.position) < PLAYER_RADIUS * PLAYER_RADIUS) {
@@ -499,7 +490,7 @@ const updateItems = (time, player, items, assets) => {
             }
         }
         if (item.alive) {
-            pushSprite(spriteOfItemKind(item.kind, assets), item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
+            pushSprite(spritePool, spriteOfItemKind(item.kind, assets), item.position, 0.25 + ITEM_AMP - ITEM_AMP * Math.sin(ITEM_FREQ * Math.PI * time + item.position.x + item.position.y), 0.25);
         }
     }
 };
@@ -514,7 +505,7 @@ const allocateParticles = (capacity) => {
     }
     return particles;
 };
-const updateParticles = (particles, scene, deltaTime) => {
+const updateParticles = (spritePool, deltaTime, scene, particles) => {
     for (const particle of particles) {
         if (particle.lifetime > 0) {
             particle.lifetime -= deltaTime;
@@ -543,7 +534,7 @@ const updateParticles = (particles, scene, deltaTime) => {
                 particle.position.z = nz;
             }
             if (particle.lifetime > 0) {
-                pushSprite(PARTICLE_COLOR, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
+                pushSprite(spritePool, PARTICLE_COLOR, new Vector2(particle.position.x, particle.position.y), particle.position.z, PARTICLE_SCALE);
             }
         }
     }
@@ -570,7 +561,7 @@ const playSound = (sound, playerPosition, objectPosition) => {
     sound.currentTime = 0;
     sound.play();
 };
-const updateBombs = (player, bombs, particles, scene, deltaTime, assets) => {
+const updateBombs = (spritePool, player, bombs, particles, scene, deltaTime, assets) => {
     for (const bomb of bombs) {
         if (bomb.lifetime > 0) {
             bomb.lifetime -= deltaTime;
@@ -611,7 +602,7 @@ const updateBombs = (player, bombs, particles, scene, deltaTime, assets) => {
                 }
             }
             else {
-                pushSprite(assets.bombImageData, new Vector2(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
+                pushSprite(spritePool, assets.bombImageData, new Vector2(bomb.position.x, bomb.position.y), bomb.position.z, BOMB_SCALE);
             }
         }
     }
@@ -691,20 +682,23 @@ export const createGame = async () => {
     ];
     const bombs = allocateBombs(10);
     const particles = allocateParticles(1000);
-    return { player, scene, items, bombs, particles, assets };
+    const visibleSprites = [];
+    const spritePool = createSpritePool();
+    return { player, scene, items, bombs, particles, assets, spritePool, visibleSprites };
 };
 export const renderGame = (display, deltaTime, time, game) => {
-    spritePoolReset(spritePool);
+    spritePoolReset(game.spritePool);
     updatePlayer(game.player, game.scene, deltaTime);
-    updateItems(time, game.player, game.items, game.assets);
-    updateBombs(game.player, game.bombs, game.particles, game.scene, deltaTime, game.assets);
-    updateParticles(game.particles, game.scene, deltaTime);
+    updateItems(game.spritePool, time, game.player, game.items, game.assets);
+    updateBombs(game.spritePool, game.player, game.bombs, game.particles, game.scene, deltaTime, game.assets);
+    updateParticles(game.spritePool, deltaTime, game.scene, game.particles);
     renderFloorAndCeiling(display.backImageData, game.player);
     renderWalls(display, game.player, game.scene);
-    renderSprites(display, game.player);
+    cullSprites(game.player, game.spritePool, game.visibleSprites);
+    renderSprites(display, game.visibleSprites);
     displaySwapBackImageData(display);
     if (MINIMAP)
-        renderMinimap(display.ctx, game.player, game.scene);
+        renderMinimap(display.ctx, game.player, game.scene, game.spritePool, game.visibleSprites);
     renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map
