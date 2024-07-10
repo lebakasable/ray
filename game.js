@@ -322,7 +322,7 @@ const displaySwapBackImageData = (display) => {
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
 };
-const cullSprites = (player, spritePool, visibleSprites) => {
+const cullAndSortSprites = (player, spritePool, visibleSprites) => {
     const sp = new Vector2();
     const dir = new Vector2().setPolar(player.direction);
     visibleSprites.length = 0;
@@ -692,7 +692,7 @@ export const renderGame = (display, deltaTime, time, game) => {
     updateParticles(game.spritePool, deltaTime, game.scene, game.particles);
     renderFloorAndCeiling(display.backImageData, game.player);
     renderWalls(display, game.player, game.scene);
-    cullSprites(game.player, game.spritePool, game.visibleSprites);
+    cullAndSortSprites(game.player, game.spritePool, game.visibleSprites);
     renderSprites(display, game.visibleSprites);
     displaySwapBackImageData(display);
     if (MINIMAP)
