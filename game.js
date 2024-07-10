@@ -1,22 +1,4 @@
-export class RGBA {
-    r;
-    g;
-    b;
-    a;
-    constructor(r, g, b, a) {
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.a = a;
-    }
-    toString() {
-        return `rgba(`
-            + `${Math.floor(this.r * 255)}, `
-            + `${Math.floor(this.g * 255)}, `
-            + `${Math.floor(this.b * 255)}, `
-            + `${this.a})`;
-    }
-}
+import { Vector2, Vector3, RGBA } from './vector.js';
 const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
@@ -48,197 +30,6 @@ const createSpritePool = () => ({
     length: 0,
 });
 const spritePoolReset = (spritePool) => spritePool.length = 0;
-export class Vector2 {
-    x;
-    y;
-    constructor(x = 0, y = 0) {
-        this.x = x;
-        this.y = y;
-    }
-    setPolar(angle, len = 1) {
-        this.x = Math.cos(angle) * len;
-        this.y = Math.sin(angle) * len;
-        return this;
-    }
-    clone() {
-        return new Vector2(this.x, this.y);
-    }
-    copy(that) {
-        this.x = that.x;
-        this.y = that.y;
-        return this;
-    }
-    set(x, y) {
-        this.x = x;
-        this.y = y;
-        return this;
-    }
-    setScalar(scalar) {
-        this.x = scalar;
-        this.y = scalar;
-        return this;
-    }
-    add(that) {
-        this.x += that.x;
-        this.y += that.y;
-        return this;
-    }
-    sub(that) {
-        this.x -= that.x;
-        this.y -= that.y;
-        return this;
-    }
-    div(that) {
-        this.x /= that.x;
-        this.y /= that.y;
-        return this;
-    }
-    mul(that) {
-        this.x *= that.x;
-        this.y *= that.y;
-        return this;
-    }
-    sqrLength() {
-        return this.x * this.x + this.y * this.y;
-    }
-    length() {
-        return Math.sqrt(this.sqrLength());
-    }
-    scale(value) {
-        this.x *= value;
-        this.y *= value;
-        return this;
-    }
-    norm() {
-        const l = this.length();
-        return l === 0 ? this : this.scale(1 / l);
-    }
-    rot90() {
-        const oldX = this.x;
-        this.x = -this.y;
-        this.y = oldX;
-        return this;
-    }
-    sqrDistanceTo(that) {
-        const dx = that.x - this.x;
-        const dy = that.y - this.y;
-        return dx * dx + dy * dy;
-    }
-    distanceTo(that) {
-        return Math.sqrt(this.sqrDistanceTo(that));
-    }
-    lerp(that, t) {
-        this.x += (that.x - this.x) * t;
-        this.y += (that.y - this.y) * t;
-        return this;
-    }
-    dot(that) {
-        return this.x * that.x + this.y * that.y;
-    }
-    map(f) {
-        this.x = f(this.x);
-        this.y = f(this.y);
-        return this;
-    }
-}
-export class Vector3 {
-    x;
-    y;
-    z;
-    constructor(x = 0, y = 0, z = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
-    clone() {
-        return new Vector3(this.x, this.y, this.z);
-    }
-    clone2() {
-        return new Vector2(this.x, this.y);
-    }
-    copy(that) {
-        this.x = that.x;
-        this.y = that.y;
-        this.z = that.z;
-        return this;
-    }
-    copy2(that, z) {
-        this.x = that.x;
-        this.y = that.y;
-        this.z = z;
-        return this;
-    }
-    setScalar(scalar) {
-        this.x = scalar;
-        this.y = scalar;
-        this.z = scalar;
-        return this;
-    }
-    add(that) {
-        this.x += that.x;
-        this.y += that.y;
-        this.z += that.z;
-        return this;
-    }
-    sub(that) {
-        this.x -= that.x;
-        this.y -= that.y;
-        this.z -= that.z;
-        return this;
-    }
-    div(that) {
-        this.x /= that.x;
-        this.y /= that.y;
-        this.z /= that.z;
-        return this;
-    }
-    mul(that) {
-        this.x *= that.x;
-        this.y *= that.y;
-        this.z *= that.z;
-        return this;
-    }
-    sqrLength() {
-        return this.x * this.x + this.y * this.y + this.z * this.z;
-    }
-    length() {
-        return Math.sqrt(this.sqrLength());
-    }
-    scale(value) {
-        this.x *= value;
-        this.y *= value;
-        this.z *= value;
-        return this;
-    }
-    norm() {
-        const l = this.length();
-        return l === 0 ? this : this.scale(1 / l);
-    }
-    sqrDistanceTo(that) {
-        const dx = that.x - this.x;
-        const dy = that.y - this.y;
-        const dz = that.z - this.z;
-        return dx * dx + dy * dy + dz * dz;
-    }
-    distanceTo(that) {
-        return Math.sqrt(this.sqrDistanceTo(that));
-    }
-    lerp(that, t) {
-        this.x += (that.x - this.x) * t;
-        this.y += (that.y - this.y) * t;
-        this.z += (that.z - this.z) * t;
-        return this;
-    }
-    dot(that) {
-        return this.x * that.x + this.y * that.y + this.z * that.z;
-    }
-    map(f) {
-        this.x = f(this.x);
-        this.y = f(this.y);
-        this.z = f(this.z);
-        return this;
-    }
-}
 const strokeLine = (ctx, p1, p2) => {
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
@@ -289,7 +80,7 @@ const SCENE_FLOOR1 = new RGBA(0.094, 0.094 + 0.05, 0.094 + 0.05, 1.0);
 const SCENE_FLOOR2 = new RGBA(0.188, 0.188 + 0.05, 0.188 + 0.05, 1.0);
 const SCENE_CEILING1 = new RGBA(0.094 + 0.05, 0.094, 0.094, 1.0);
 const SCENE_CEILING2 = new RGBA(0.188 + 0.05, 0.188, 0.188, 1.0);
-export const createScene = (walls) => {
+const createScene = (walls) => {
     const scene = {
         height: walls.length,
         width: Number.MIN_VALUE,
@@ -361,7 +152,7 @@ const castRay = (scene, p1, p2) => {
     }
     return p2;
 };
-export const createPlayer = (position, direction) => ({
+const createPlayer = (position, direction) => ({
     position: position,
     controlVelocity: new Vector2(),
     fovLeft: new Vector2(),
@@ -527,6 +318,19 @@ const renderFloorAndCeiling = (imageData, player) => {
         }
     }
 };
+export const createDisplay = (ctx, width, height) => {
+    const backImageData = new ImageData(width, height);
+    backImageData.data.fill(255);
+    const backCanvas = new OffscreenCanvas(width, height);
+    const backCtx = backCanvas.getContext('2d');
+    backCtx.imageSmoothingEnabled = false;
+    return {
+        ctx,
+        backCtx,
+        backImageData,
+        zBuffer: Array(width).fill(0),
+    };
+};
 const displaySwapBackImageData = (display) => {
     display.backCtx.putImageData(display.backImageData, 0, 0);
     display.ctx.drawImage(display.backCtx.canvas, 0, 0, display.ctx.canvas.width, display.ctx.canvas.height);
@@ -627,7 +431,7 @@ const pushSprite = (image, position, z, scale) => {
         spritePool.length += 1;
     }
 };
-export const allocateBombs = (capacity) => {
+const allocateBombs = (capacity) => {
     const bombs = [];
     for (let i = 0; i < capacity; ++i) {
         bombs.push({
@@ -699,7 +503,7 @@ const updateItems = (time, player, items, assets) => {
         }
     }
 };
-export const allocateParticles = (capacity) => {
+const allocateParticles = (capacity) => {
     const particles = [];
     for (let i = 0; i < capacity; ++i) {
         particles.push({
@@ -710,7 +514,7 @@ export const allocateParticles = (capacity) => {
     }
     return particles;
 };
-const updateParticles = (particles, scene, deltaTime, assets) => {
+const updateParticles = (particles, scene, deltaTime) => {
     for (const particle of particles) {
         if (particle.lifetime > 0) {
             particle.lifetime -= deltaTime;
@@ -812,19 +616,95 @@ const updateBombs = (player, bombs, particles, scene, deltaTime, assets) => {
         }
     }
 };
-;
-export const renderGame = (display, deltaTime, time, player, scene, items, bombs, particles, assets) => {
+const loadImage = async (url) => {
+    const image = new Image();
+    image.src = url;
+    return new Promise((resolve, reject) => {
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+    });
+};
+const loadImageData = async (url) => {
+    const image = await loadImage(url);
+    const canvas = new OffscreenCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    return ctx.getImageData(0, 0, image.width, image.height);
+};
+export const createGame = async () => {
+    const [wall, keyImageData, bombImageData] = await Promise.all([
+        loadImageData('assets/images/wall.png'),
+        loadImageData('assets/images/key.png'),
+        loadImageData('assets/images/bomb.png'),
+    ]);
+    const itemPickupSound = new Audio('assets/sounds/pickup.ogg');
+    const bombRicochetSound = new Audio('assets/sounds/ricochet.wav');
+    const bombBlastSound = new Audio('assets/sounds/blast.ogg');
+    const assets = {
+        keyImageData,
+        bombImageData,
+        bombRicochetSound,
+        itemPickupSound,
+        bombBlastSound,
+    };
+    const scene = createScene([
+        [null, null, wall, wall, wall, null, null],
+        [null, null, null, null, null, wall, null],
+        [wall, null, null, null, null, wall, null],
+        [wall, null, null, null, null, wall, null],
+        [wall, null, null, null, null, null, null],
+        [null, wall, wall, wall, null, null, null],
+        [null, null, null, null, null, null, null],
+    ]);
+    const player = createPlayer(new Vector2(scene.width, scene.height).scale(1.2), Math.PI * 1.25);
+    const items = [
+        {
+            kind: 'bomb',
+            alive: true,
+            position: new Vector2(1.5, 2.5),
+        },
+        {
+            kind: 'key',
+            alive: true,
+            position: new Vector2(2.5, 1.5),
+        },
+        {
+            kind: 'key',
+            alive: true,
+            position: new Vector2(3, 1.5),
+        },
+        {
+            kind: 'key',
+            alive: true,
+            position: new Vector2(3.5, 1.5),
+        },
+        {
+            kind: 'key',
+            alive: true,
+            position: new Vector2(4, 1.5),
+        },
+        {
+            kind: 'key',
+            alive: true,
+            position: new Vector2(4.5, 1.5),
+        },
+    ];
+    const bombs = allocateBombs(10);
+    const particles = allocateParticles(1000);
+    return { player, scene, items, bombs, particles, assets };
+};
+export const renderGame = (display, deltaTime, time, game) => {
     spritePoolReset(spritePool);
-    updatePlayer(player, scene, deltaTime);
-    updateItems(time, player, items, assets);
-    updateBombs(player, bombs, particles, scene, deltaTime, assets);
-    updateParticles(particles, scene, deltaTime, assets);
-    renderFloorAndCeiling(display.backImageData, player);
-    renderWalls(display, player, scene);
-    renderSprites(display, player);
+    updatePlayer(game.player, game.scene, deltaTime);
+    updateItems(time, game.player, game.items, game.assets);
+    updateBombs(game.player, game.bombs, game.particles, game.scene, deltaTime, game.assets);
+    updateParticles(game.particles, game.scene, deltaTime);
+    renderFloorAndCeiling(display.backImageData, game.player);
+    renderWalls(display, game.player, game.scene);
+    renderSprites(display, game.player);
     displaySwapBackImageData(display);
     if (MINIMAP)
-        renderMinimap(display.ctx, player, scene);
+        renderMinimap(display.ctx, game.player, game.scene);
     renderFPS(display.ctx, deltaTime);
 };
 //# sourceMappingURL=game.js.map

@@ -2,21 +2,6 @@
 const SCREEN_FACTOR = 30;
 const SCREEN_WIDTH = Math.floor(16 * SCREEN_FACTOR);
 const SCREEN_HEIGHT = Math.floor(9 * SCREEN_FACTOR);
-const loadImage = async (url) => {
-    const image = new Image();
-    image.src = url;
-    return new Promise((resolve, reject) => {
-        image.onload = () => resolve(image);
-        image.onerror = reject;
-    });
-};
-const loadImageData = async (url) => {
-    const image = await loadImage(url);
-    const canvas = new OffscreenCanvas(image.width, image.height);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-    return ctx.getImageData(0, 0, image.width, image.height);
-};
 (async () => {
     const gameCanvas = document.querySelector('#game');
     const factor = 80;
@@ -24,66 +9,7 @@ const loadImageData = async (url) => {
     gameCanvas.height = 9 * factor;
     const ctx = gameCanvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    const [wall, keyImageData, bombImageData] = await Promise.all([
-        loadImageData('assets/images/wall.png'),
-        loadImageData('assets/images/key.png'),
-        loadImageData('assets/images/bomb.png'),
-    ]);
-    const itemPickupSound = new Audio('assets/sounds/pickup.ogg');
-    const bombRicochetSound = new Audio('assets/sounds/ricochet.wav');
-    const bombBlastSound = new Audio('assets/sounds/blast.ogg');
-    const assets = {
-        keyImageData,
-        bombImageData,
-        bombRicochetSound,
-        itemPickupSound,
-        bombBlastSound,
-    };
     let game = await import('./game.js');
-    const scene = game.createScene([
-        [null, null, wall, wall, wall, null, null],
-        [null, null, null, null, null, wall, null],
-        [wall, null, null, null, null, wall, null],
-        [wall, null, null, null, null, wall, null],
-        [wall, null, null, null, null, null, null],
-        [null, wall, wall, wall, null, null, null],
-        [null, null, null, null, null, null, null],
-    ]);
-    const player = game.createPlayer(new game.Vector2(scene.width, scene.height).scale(1.2), Math.PI * 1.25);
-    const items = [
-        {
-            kind: 'bomb',
-            alive: true,
-            position: new game.Vector2(1.5, 2.5),
-        },
-        {
-            kind: 'key',
-            alive: true,
-            position: new game.Vector2(2.5, 1.5),
-        },
-        {
-            kind: 'key',
-            alive: true,
-            position: new game.Vector2(3, 1.5),
-        },
-        {
-            kind: 'key',
-            alive: true,
-            position: new game.Vector2(3.5, 1.5),
-        },
-        {
-            kind: 'key',
-            alive: true,
-            position: new game.Vector2(4, 1.5),
-        },
-        {
-            kind: 'key',
-            alive: true,
-            position: new game.Vector2(4.5, 1.5),
-        },
-    ];
-    const bombs = game.allocateBombs(10);
-    const particles = game.allocateParticles(1000);
     const isDev = window.location.hostname === 'localhost';
     if (isDev) {
         const ws = new WebSocket('ws://localhost:6970');
@@ -97,40 +23,30 @@ const loadImageData = async (url) => {
             }
         });
     }
-    const backImageData = new ImageData(SCREEN_WIDTH, SCREEN_HEIGHT);
-    backImageData.data.fill(255);
-    const backCanvas = new OffscreenCanvas(SCREEN_WIDTH, SCREEN_HEIGHT);
-    const backCtx = backCanvas.getContext('2d');
-    backCtx.imageSmoothingEnabled = false;
-    const display = {
-        ctx,
-        backCtx,
-        backImageData,
-        zBuffer: Array(SCREEN_WIDTH).fill(0),
-    };
+    const display = game.createDisplay(ctx, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const gameState = await game.createGame();
     window.addEventListener('keydown', (e) => {
         if (!e.repeat) {
             switch (e.code) {
                 case 'ArrowUp':
                 case 'KeyW':
-                    player.movingForward = true;
+                    gameState.player.movingForward = true;
                     break;
                 case 'ArrowDown':
                 case 'KeyS':
-                    player.movingBackward = true;
+                    gameState.player.movingBackward = true;
                     break;
                 case 'ArrowLeft':
                 case 'KeyA':
-                    player.turningLeft = true;
+                    gameState.player.turningLeft = true;
                     break;
                 case 'ArrowRight':
                 case 'KeyD':
-                    player.turningRight = true;
+                    gameState.player.turningRight = true;
                     break;
                 case 'Space':
                     {
-                        game.throwBomb(player, bombs);
-                        console.log(bombs);
+                        game.throwBomb(gameState.player, gameState.bombs);
                     }
                     break;
             }
@@ -141,19 +57,19 @@ const loadImageData = async (url) => {
             switch (e.code) {
                 case 'ArrowUp':
                 case 'KeyW':
-                    player.movingForward = false;
+                    gameState.player.movingForward = false;
                     break;
                 case 'ArrowDown':
                 case 'KeyS':
-                    player.movingBackward = false;
+                    gameState.player.movingBackward = false;
                     break;
                 case 'ArrowLeft':
                 case 'KeyA':
-                    player.turningLeft = false;
+                    gameState.player.turningLeft = false;
                     break;
                 case 'ArrowRight':
                 case 'KeyD':
-                    player.turningRight = false;
+                    gameState.player.turningRight = false;
                     break;
             }
         }
@@ -163,7 +79,7 @@ const loadImageData = async (url) => {
         const deltaTime = (timestamp - prevTimestamp) / 1000;
         const time = timestamp / 1000;
         prevTimestamp = timestamp;
-        game.renderGame(display, deltaTime, time, player, scene, items, bombs, particles, assets);
+        game.renderGame(display, deltaTime, time, gameState);
         window.requestAnimationFrame(frame);
     };
     window.requestAnimationFrame((timestamp) => {
