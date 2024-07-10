@@ -423,6 +423,7 @@ interface Sprite {
 const cullAndSortSprites = (player: Player, spritePool: SpritePool, visibleSprites: Sprite[]) => {
   const sp = new Vector2();
   const dir = new Vector2().setPolar(player.direction);
+  const fov = player.fovRight.clone().sub(player.fovLeft);
 
   visibleSprites.length = 0;
   for (let i = 0; i < spritePool.length; ++i) {
@@ -433,11 +434,11 @@ const cullAndSortSprites = (player: Player, spritePool: SpritePool, visibleSprit
     if (spl <= NEAR_CLIPPING_PLANE) continue;
     if (spl >= FAR_CLIPPING_PLANE) continue;
 
-    const dot = sp.dot(dir)/spl;
-    if (!(HALF_FOV_COS <= dot)) continue;
-    sprite.dist = NEAR_CLIPPING_PLANE/dot;
-    sp.norm().scale(sprite.dist).add(player.position);
-    sprite.t = player.fovLeft.distanceTo(sp)/player.fovLeft.distanceTo(player.fovRight);
+    const cos = sp.dot(dir)/spl;
+    if (cos < 0) continue;
+    sprite.dist = NEAR_CLIPPING_PLANE/cos;
+    sp.norm().scale(sprite.dist).add(player.position).sub(player.fovLeft);
+    sprite.t = sp.length()/fov.length()*Math.sign(sp.dot(fov));
     sprite.pdist = sprite.position.clone().sub(player.position).dot(dir);
 
     if (sprite.pdist < NEAR_CLIPPING_PLANE) continue;
