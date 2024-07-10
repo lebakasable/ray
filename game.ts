@@ -4,7 +4,6 @@ const EPS = 1e-6;
 const NEAR_CLIPPING_PLANE = 0.1;
 const FAR_CLIPPING_PLANE = 10.0;
 const FOV = Math.PI*0.5;
-const HALF_FOV_COS = Math.cos(FOV*0.5);
 const PLAYER_SPEED = 2;
 const PLAYER_RADIUS = 0.5;
 
